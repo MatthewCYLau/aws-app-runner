@@ -5,3 +5,7 @@
 *.tfstate.*
 
 certs
+
+# python
+venv
+__pycache__
