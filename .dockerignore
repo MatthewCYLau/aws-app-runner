@@ -1,0 +1,6 @@
+__pycache__
+venv
+.git
+terraform
+sql
+k8s
