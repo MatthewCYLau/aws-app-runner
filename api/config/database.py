@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 
 REGION = "us-east-1"
 DB_HOST = (
-    "terraform-20260401190433780300000001.c3bji2qrl6dz.us-east-1.rds.amazonaws.com"
+    "terraform-20260402105256633800000001.c3bji2qrl6dz.us-east-1.rds.amazonaws.com"
 )
 DB_PORT = 5432
 DB_USER = "iam_user"
