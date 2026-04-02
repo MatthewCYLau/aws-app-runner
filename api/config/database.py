@@ -1,13 +1,12 @@
 import boto3
+import os
 from sqlalchemy import create_engine, engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 
 REGION = "us-east-1"
-DB_HOST = (
-    "terraform-20260402105256633800000001.c3bji2qrl6dz.us-east-1.rds.amazonaws.com"
-)
+DB_HOST = os.get("DB_HOST")
 DB_PORT = 5432
 DB_USER = "iam_user"
 DB_NAME = "apprunnerdb"
