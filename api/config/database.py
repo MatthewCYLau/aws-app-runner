@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 REGION = "us-east-1"
-DB_HOST = os.get("DB_HOST")
+DB_HOST = os.environ.get("DB_HOST")
 DB_PORT = 5432
 DB_USER = "iam_user"
 DB_NAME = "apprunnerdb"
