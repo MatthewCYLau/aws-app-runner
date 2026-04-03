@@ -1,3 +1,4 @@
+/*
 resource "aws_apprunner_service" "this" {
   service_name = "aws-app-runner-service"
   instance_configuration {
@@ -24,3 +25,4 @@ resource "aws_apprunner_service" "this" {
     { Name = "aws-app-runne-service" }
   )
 }
+*/

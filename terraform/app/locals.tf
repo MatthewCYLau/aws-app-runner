@@ -5,3 +5,7 @@ locals {
     app_name    = "aws-app-runner"
   }
 }
+
+locals {
+  instance_ami = data.aws_ami.amazon-linux-2.id
+}
