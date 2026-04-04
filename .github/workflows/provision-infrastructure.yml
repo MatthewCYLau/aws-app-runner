@@ -34,6 +34,12 @@ jobs:
         with:
           role-to-assume: ${{ secrets.IAM_ROLE_ARN }}
           aws-region: us-east-1
+      - name: Set-up SSH public key
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_PUBLIC_KEY" > ~/.ssh/aws_app.pub
+        env:
+          SSH_PUBLIC_KEY: ${{secrets.SSH_PUBLIC_KEY}}
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
       - name: Terraform Init
@@ -70,6 +76,12 @@ jobs:
         with:
           role-to-assume: ${{ secrets.IAM_ROLE_ARN }}
           aws-region: us-east-1
+      - name: Set-up SSH public key
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_PUBLIC_KEY" > ~/.ssh/aws_app.pub
+        env:
+          SSH_PUBLIC_KEY: ${{secrets.SSH_PUBLIC_KEY}}
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
       - name: Terraform Init
