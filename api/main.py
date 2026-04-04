@@ -11,4 +11,4 @@ app.include_router(product_router)
 
 @app.get("/")
 def up():
-    return "Up!!"
+    return "Up!"

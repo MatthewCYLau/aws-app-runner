@@ -38,7 +38,13 @@ jobs:
 
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-      # - name: Deploy to App Runner
-      #   run: |
-      #     aws apprunner start-deployment \
-      #       --service-arn ${{ secrets.APP_RUNNER_SERVICE_ARN }}
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition aws-app-task-definition --query taskDefinition > task-definition.json
+      - name: Deploy to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: task-definition.json
+          service: aws-app-service
+          cluster: aws-app-cluster
+          wait-for-service-stability: true
