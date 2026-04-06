@@ -3,7 +3,7 @@ resource "aws_vpc" "this" {
   enable_dns_hostnames = true
   tags = merge(
     local.common_tags,
-    { Name = "app-runner-vpc-network-1" }
+    { Name = "aws-ecs-app-vpc-network-1" }
   )
 }
 
@@ -15,7 +15,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "AWS App Public Subnet ${count.index}"
+    Name = "AWS ECS App Public Subnet ${count.index}"
   }
 }
 
@@ -26,7 +26,7 @@ resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.this.id
 
   tags = {
-    Name = "AWS App Private Subnet ${count.index}"
+    Name = "AWS ECS App Private Subnet ${count.index}"
   }
 }
 
@@ -37,7 +37,7 @@ resource "aws_subnet" "rds" {
   vpc_id            = aws_vpc.this.id
 
   tags = {
-    Name = "RDS Private Subnet ${count.index}"
+    Name = "AWS ECS App RDS Private Subnet ${count.index}"
   }
 }
 
@@ -73,7 +73,7 @@ resource "aws_route_table" "private" {
   }
 
   tags = {
-    Name = "App Private Route Table ${count.index}"
+    Name = "AWS ECS Private Route Table ${count.index}"
   }
 }
 

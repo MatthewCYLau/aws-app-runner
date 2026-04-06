@@ -10,9 +10,10 @@ resource "aws_instance" "compute_instance" {
   vpc_security_group_ids = ["${aws_security_group.bastion_vm.id}"]
   key_name               = aws_key_pair.ec2_key.key_name
   user_data              = file("./scripts/install_postgresql.sh")
-  tags = {
-    Name = "AWS App Public EC2 instance"
-  }
+  tags = merge(
+    local.common_tags,
+    { Name = "AWS App Public EC2 instance" }
+  )
 }
 
 output "ec2_public_ip" {

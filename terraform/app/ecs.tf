@@ -1,5 +1,9 @@
 resource "aws_ecs_cluster" "main" {
   name = "aws-app-cluster"
+  tags = merge(
+    local.common_tags,
+    { Name = "AWS ECS App main cluster" }
+  )
 }
 
 resource "aws_ecs_task_definition" "service" {
@@ -19,7 +23,7 @@ resource "aws_ecs_task_definition" "service" {
   })
   tags = merge(
     local.common_tags,
-    { Name = "aws-app-task-definition" }
+    { Name = "aws-ecs-app-task-definition" }
   )
 }
 
@@ -47,6 +51,6 @@ resource "aws_ecs_service" "this" {
 
   tags = merge(
     local.common_tags,
-    { Name = "aws-app-service" }
+    { Name = "aws-ecs-app-service" }
   )
 }

@@ -11,13 +11,18 @@ resource "aws_db_instance" "postgres" {
 
   db_subnet_group_name   = aws_db_subnet_group.postgres.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
+  tags = merge(
+    local.common_tags,
+    { Name = "AWS ECS App PostgreSQL DB" }
+  )
 }
 
 resource "aws_db_subnet_group" "postgres" {
   name       = "postgres-private-subnets-group"
   subnet_ids = aws_subnet.rds.*.id
 
-  tags = {
-    Name = "PostgreSQL DB private subnet group"
-  }
+  tags = merge(
+    local.common_tags,
+    { Name = "PostgreSQL DB private subnet group" }
+  )
 }
