@@ -1,5 +1,5 @@
 resource "aws_cloudwatch_log_group" "this" {
-  name = "aws-app"
+  name = "/aws/ecs/aws-app-service"
 
   tags = merge(
     local.common_tags,
