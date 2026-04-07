@@ -11,7 +11,7 @@ def setup_logging() -> None:
         datefmt="%H:%M:%S",
         stream=sys.stdout,
     )
-    logging.getLogger("passlib").setLevel(logging.ERROR)
+    logging.getLogger("passlib").setLevel(logging.INFO)
 
 
 def get_logger(name: str) -> logging.Logger:
