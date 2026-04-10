@@ -7,6 +7,7 @@ resource "aws_instance" "compute_instance" {
   ami                    = local.instance_ami
   instance_type          = var.instance_type
   subnet_id              = aws_subnet.public[0].id
+  availability_zone      = data.aws_availability_zones.available_zones.names[0]
   vpc_security_group_ids = ["${aws_security_group.bastion_vm.id}"]
   key_name               = aws_key_pair.ec2_key.key_name
   user_data              = file("./scripts/install_postgresql.sh")
