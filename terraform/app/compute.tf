@@ -4,13 +4,13 @@ resource "aws_key_pair" "ec2_key" {
 }
 
 resource "aws_instance" "compute_instance" {
-  ami                     = local.instance_ami
-  instance_type           = var.instance_type
-  subnet_id               = aws_subnet.public[0].id
-  availability_zone       = data.aws_availability_zones.available_zones.names[0]
-  vpc_security_group_ids  = ["${aws_security_group.bastion_vm.id}"]
-  key_name                = aws_key_pair.ec2_key.key_name
-  user_data               = file("./scripts/start_up.sh")
+  ami                    = local.instance_ami
+  instance_type          = var.instance_type
+  subnet_id              = aws_subnet.public[0].id
+  availability_zone      = data.aws_availability_zones.available_zones.names[0]
+  vpc_security_group_ids = ["${aws_security_group.bastion_vm.id}"]
+  key_name               = aws_key_pair.ec2_key.key_name
+  user_data              = file("./scripts/start_up.sh")
   ebs_block_device {
     device_name           = "/dev/sdh"
     volume_size           = 1
