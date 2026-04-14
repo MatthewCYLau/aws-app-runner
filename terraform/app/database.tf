@@ -26,3 +26,9 @@ resource "aws_db_subnet_group" "postgres" {
     { Name = "PostgreSQL DB private subnet group" }
   )
 }
+
+
+output "db_hostname" {
+  value       = aws_db_instance.postgres.address
+  description = "PostgreSQL database hostname"
+}
