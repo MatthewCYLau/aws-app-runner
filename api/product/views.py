@@ -24,7 +24,12 @@ def create_product(
     product_data: ProductBase, service: ProductService = Depends(get_product_service)
 ):
     """Register a new product."""
-    logger.info(f"Registering product: {product_data.name}")
+    logger.info(
+        "registering_product",
+        product_name=product_data.name,
+        product_price=product_data.price,
+        status="success",
+    )
     return service.create_product(product_data)
 
 
