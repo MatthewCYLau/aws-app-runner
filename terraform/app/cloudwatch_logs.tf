@@ -1,5 +1,3 @@
-variable "metric_filter_name" { default = "NewProductCreationFilter" }
-
 resource "aws_cloudwatch_log_group" "this" {
   name = "/aws/ecs/aws-app-service"
 
@@ -10,7 +8,7 @@ resource "aws_cloudwatch_log_group" "this" {
 }
 
 resource "aws_cloudwatch_log_metric_filter" "transaction_filter" {
-  name           = var.metric_filter_name
+  name           = "NewProductCreationFilter"
   pattern        = "\"registering_product\""
   log_group_name = aws_cloudwatch_log_group.this.name
 
@@ -34,7 +32,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         height = 6
         properties = {
           metrics = [
-            ["LogMetrics", var.metric_filter_name]
+            ["LogMetrics", "NewProductCreationCount"]
           ]
           period = 300
           stat   = "Sum"
