@@ -1,6 +1,13 @@
 from fastapi import FastAPI
+import boto3
+import os
+from botocore.exceptions import ClientError
 from api.config.database import Base, engine
+from api.config.logging import get_logger
 from api.product.views import router as product_router
+
+logger = get_logger(__name__)
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -13,3 +20,29 @@ app.include_router(product_router)
 @app.get("/")
 def up():
     return "Up!"
+
+
+def stream_text_to_s3(text_content, object_key):
+    bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
+
+    s3_client = boto3.client("s3")
+
+    try:
+        s3_client.put_object(
+            Body=text_content,
+            Bucket=bucket_name,
+            Key=object_key,
+            ContentType="text/plain",
+        )
+        logger.info(f"Successfully uploaded to {object_key}")
+    except ClientError as e:
+        logger.error(f"AWS Error: {e.response['Error']['Message']}")
+    except Exception as e:
+        logger.error(f"Contextual Error: {e}")
+
+
+@app.post("/upload-s3")
+def upload_s3():
+    report_data = "Date,User,Action\n2026-04-17,Admin,Login"
+    stream_text_to_s3(report_data, "logs/daily_report.csv")
+    return "Done!"
