@@ -82,3 +82,22 @@ resource "aws_route_table_association" "private" {
   subnet_id      = element(aws_subnet.private.*.id, count.index)
   route_table_id = element(aws_route_table.private.*.id, count.index)
 }
+
+data "aws_region" "current" {}
+
+resource "aws_vpc_endpoint" "s3_gateway" {
+  vpc_id            = aws_vpc.this.id
+  service_name      = "com.amazonaws.${data.aws_region.current.region}.s3"
+  vpc_endpoint_type = "Gateway"
+
+  tags = merge(
+    local.common_tags,
+    { Name = "S3 gateway endpoint" }
+  )
+}
+
+resource "aws_vpc_endpoint_route_table_association" "private_s3" {
+  count           = 2
+  vpc_endpoint_id = aws_vpc_endpoint.s3_gateway.id
+  route_table_id  = element(aws_route_table.private.*.id, count.index)
+}
