@@ -56,3 +56,24 @@ resource "aws_iam_role_policy_attachment" "rds_auth_attach_ecs_task_role" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.rds_policy.arn
 }
+
+resource "aws_iam_policy" "s3_write_policy" {
+  name        = "AssetsS3WriteAccess"
+  description = "Allows ECS task to write to the assets bucket"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "s3:PutObject",
+      ]
+      Resource = "${aws_s3_bucket.assets.arn}/*"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "task_s3_attach" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.s3_write_policy.arn
+}
