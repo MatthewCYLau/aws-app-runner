@@ -20,6 +20,7 @@ resource "aws_ecs_task_definition" "service" {
     container_name                = "aws-app"
     aws_cloudwatch_log_group_name = aws_cloudwatch_log_group.this.name
     db_host                       = aws_db_instance.postgres.address
+    s3_bucket_name                = aws_s3_bucket.assets.bucket
   })
   tags = merge(
     local.common_tags,

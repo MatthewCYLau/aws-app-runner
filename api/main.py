@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import boto3
 import os
 from botocore.exceptions import ClientError
@@ -16,6 +16,8 @@ app = FastAPI()
 
 app.include_router(product_router)
 
+bucket_name = os.environ.get("S3_BUCKET_NAME")
+
 
 @app.get("/")
 def up():
@@ -23,7 +25,6 @@ def up():
 
 
 def stream_text_to_s3(text_content, object_key):
-    bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
 
     s3_client = boto3.client("s3")
 
@@ -44,5 +45,21 @@ def stream_text_to_s3(text_content, object_key):
 @app.post("/upload-s3")
 def upload_s3():
     report_data = "Date,User,Action\n2026-04-17,Admin,Login"
-    stream_text_to_s3(report_data, "logs/daily_report.csv")
+    stream_text_to_s3(report_data, "daily_report.csv")
     return "Done!"
+
+
+@app.get("/get-s3-presigned-url")
+def get_s3_presigned_url(file_key: str):
+    s3_client = boto3.client("s3")
+    try:
+        url = s3_client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket_name, "Key": file_key},
+            ExpiresIn=86400,
+        )
+        return {"file_key": file_key, "presigned_url": url}
+
+    except ClientError as e:
+        # Log the error and return a 500 status
+        raise HTTPException(status_code=500, detail=str(e))
