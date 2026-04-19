@@ -67,6 +67,7 @@ resource "aws_iam_policy" "s3_write_policy" {
       Effect = "Allow"
       Action = [
         "s3:PutObject",
+        "s3:GetObject"
       ]
       Resource = "${aws_s3_bucket.assets.arn}/*"
     }]
