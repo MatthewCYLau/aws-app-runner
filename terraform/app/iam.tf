@@ -78,3 +78,28 @@ resource "aws_iam_role_policy_attachment" "task_s3_attach" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.s3_write_policy.arn
 }
+
+resource "aws_iam_policy" "aws_app_sqs_policy" {
+  name = "aws-app-sqs-permissions"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = aws_sqs_queue.app_queue.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "task_sqs_attach" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.aws_app_sqs_policy.arn
+}
