@@ -27,6 +27,10 @@
       {
         "name": "S3_BUCKET_NAME",
         "value": "${s3_bucket_name}"
+      },
+      {
+        "name": "SQS_QUEUE_URL",
+        "value": "${sqs_queue_url}"
       }
     ],
     "ulimits": [

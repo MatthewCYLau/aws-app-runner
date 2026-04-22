@@ -18,3 +18,22 @@ resource "aws_sqs_queue" "app_queue" {
 output "sqs_url" {
   value = aws_sqs_queue.app_queue.id
 }
+
+resource "aws_sqs_queue_policy" "restrict_to_app" {
+  queue_url = aws_sqs_queue.app_queue.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowOnlySpecificTaskRole"
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_iam_role.ecs_task_role.arn
+        }
+        Action   = "sqs:*"
+        Resource = aws_sqs_queue.app_queue.arn
+      }
+    ]
+  })
+}

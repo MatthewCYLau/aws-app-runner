@@ -1,3 +1,5 @@
+import json
+
 from fastapi import FastAPI, HTTPException
 import boto3
 import os
@@ -17,6 +19,7 @@ app = FastAPI()
 app.include_router(product_router)
 
 bucket_name = os.environ.get("S3_BUCKET_NAME")
+sqs_queue_url = os.environ.get("SQS_QUEUE_URL")
 
 
 @app.get("/")
@@ -62,4 +65,16 @@ def get_s3_presigned_url(file_key: str):
 
     except ClientError as e:
         # Log the error and return a 500 status
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/sqs")
+def publish_sqs():
+    sqs_client = boto3.client("sqs", region_name="us-east-1")
+    try:
+        response = sqs_client.send_message(
+            QueueUrl=sqs_queue_url, MessageBody=json.dumps({"body": "hello world!"})
+        )
+        return {"status": "queued", "message_id": response.get("MessageId")}
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
