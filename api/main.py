@@ -78,3 +78,26 @@ def publish_sqs():
         return {"status": "queued", "message_id": response.get("MessageId")}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/sqs")
+def received_sqs():
+    sqs_client = boto3.client("sqs", region_name="us-east-1")
+    try:
+        response = sqs_client.receive_message(
+            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=20
+        )
+
+        messages = response.get("Messages", [])
+        for msg in messages:
+            try:
+                body = json.loads(msg["Body"])
+                logger.info(body)
+                sqs_client.delete_message(
+                    QueueUrl=sqs_queue_url, ReceiptHandle=msg["ReceiptHandle"]
+                )
+                logger.info("Task completed and deleted.")
+            except Exception as e:
+                logger.error(f"Error processing message: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
