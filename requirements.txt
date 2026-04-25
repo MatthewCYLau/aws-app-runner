@@ -4,3 +4,5 @@ boto3
 sqlalchemy
 psycopg2-binary
 structlog
+numpy
+pandas

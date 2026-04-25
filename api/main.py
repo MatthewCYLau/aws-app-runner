@@ -1,5 +1,7 @@
+from io import StringIO
 import json
-
+import numpy as np
+import pandas as pd
 from fastapi import FastAPI, HTTPException
 import boto3
 import os
@@ -18,13 +20,25 @@ app = FastAPI()
 
 app.include_router(product_router)
 
-bucket_name = os.environ.get("S3_BUCKET_NAME")
+bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
 sqs_queue_url = os.environ.get("SQS_QUEUE_URL")
 
 
 @app.get("/")
 def up():
     return "Up!"
+
+
+def get_random_int(max: int = 100):
+    return np.random.randint(max, size=1)[0]
+
+
+def generate_df(size: int = 100):
+    values = np.random.normal(loc=10, scale=size, size=size)
+    series = pd.Series(values, index=list(range(size)), name="series")
+
+    df = pd.DataFrame(series)
+    return df
 
 
 def stream_text_to_s3(text_content, object_key):
@@ -52,10 +66,25 @@ def upload_s3():
     return "Done!"
 
 
+@app.post("/upload-dataframe-s3")
+def upload_dataframe_s3():
+    df = generate_df()
+    s3_client = boto3.client("s3")
+
+    csv_buffer = StringIO()
+    df.to_csv(csv_buffer, index=False)
+    object_key = f"{get_random_int()}_dataframe.csv"
+    s3_client.put_object(Bucket=bucket_name, Key=object_key, Body=csv_buffer.getvalue())
+    logger.info(f"Successfully uploaded to {object_key}")
+    return {"file_key": object_key}
+
+
 @app.get("/get-s3-presigned-url")
 def get_s3_presigned_url(file_key: str):
     s3_client = boto3.client("s3")
     try:
+        s3_client.head_object(Bucket=bucket_name, Key=file_key)
+        logger.info(f"Object with key {file_key} found!")
         url = s3_client.generate_presigned_url(
             "get_object",
             Params={"Bucket": bucket_name, "Key": file_key},
@@ -64,7 +93,6 @@ def get_s3_presigned_url(file_key: str):
         return {"file_key": file_key, "presigned_url": url}
 
     except ClientError as e:
-        # Log the error and return a 500 status
         raise HTTPException(status_code=500, detail=str(e))
 
 
