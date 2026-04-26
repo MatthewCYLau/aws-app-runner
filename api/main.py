@@ -5,6 +5,8 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 import boto3
 import os
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.background import BackgroundScheduler
 from botocore.exceptions import ClientError
 from api.config.database import Base, engine
 from api.config.logging import get_logger
@@ -15,13 +17,47 @@ logger = get_logger(__name__)
 
 Base.metadata.create_all(bind=engine)
 
+bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
+sqs_queue_url = os.environ.get(
+    "SQS_QUEUE_URL",
+    "https://sqs.us-east-1.amazonaws.com/830663695860/aws-app-task-queue",
+)
 
-app = FastAPI()
+
+def receive_sqs_messages():
+    sqs_client = boto3.client("sqs", region_name="us-east-1")
+    try:
+        response = sqs_client.receive_message(
+            QueueUrl=sqs_queue_url, WaitTimeSeconds=20
+        )
+
+        messages = response.get("Messages", [])
+        for msg in messages:
+            try:
+                body = json.loads(msg["Body"])
+                logger.info(body)
+                sqs_client.delete_message(
+                    QueueUrl=sqs_queue_url, ReceiptHandle=msg["ReceiptHandle"]
+                )
+                logger.info("Task completed and deleted.")
+            except Exception as e:
+                logger.error(f"Error processing message: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(receive_sqs_messages, "interval", minutes=1)
+    scheduler.start()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
 
 app.include_router(product_router)
-
-bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
-sqs_queue_url = os.environ.get("SQS_QUEUE_URL")
 
 
 @app.get("/")
@@ -101,31 +137,9 @@ def publish_sqs():
     sqs_client = boto3.client("sqs", region_name="us-east-1")
     try:
         response = sqs_client.send_message(
-            QueueUrl=sqs_queue_url, MessageBody=json.dumps({"body": "hello world!"})
+            QueueUrl=sqs_queue_url,
+            MessageBody=json.dumps({"counter": int(get_random_int())}),
         )
         return {"status": "queued", "message_id": response.get("MessageId")}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/sqs")
-def received_sqs():
-    sqs_client = boto3.client("sqs", region_name="us-east-1")
-    try:
-        response = sqs_client.receive_message(
-            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=20
-        )
-
-        messages = response.get("Messages", [])
-        for msg in messages:
-            try:
-                body = json.loads(msg["Body"])
-                logger.info(body)
-                sqs_client.delete_message(
-                    QueueUrl=sqs_queue_url, ReceiptHandle=msg["ReceiptHandle"]
-                )
-                logger.info("Task completed and deleted.")
-            except Exception as e:
-                logger.error(f"Error processing message: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
