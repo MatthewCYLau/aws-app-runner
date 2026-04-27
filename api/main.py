@@ -121,6 +121,14 @@ def get_s3_presigned_url(file_key: str):
     try:
         s3_client.head_object(Bucket=bucket_name, Key=file_key)
         logger.info(f"Object with key {file_key} found!")
+
+        s3_path = f"s3://{bucket_name}/{file_key}"
+        df = pd.read_csv(s3_path)
+
+        logger.info(f"{'-' * 10}First ten values{'-' * 10}")
+
+        logger.info(df.iloc[:10]["series"].values.tolist())
+
         url = s3_client.generate_presigned_url(
             "get_object",
             Params={"Bucket": bucket_name, "Key": file_key},

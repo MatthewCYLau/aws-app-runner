@@ -7,3 +7,4 @@ structlog
 numpy
 pandas
 APScheduler
+s3fs
