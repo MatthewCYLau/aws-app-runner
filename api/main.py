@@ -1,10 +1,15 @@
 from io import StringIO
+import io
 import json
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 import boto3
+import matplotlib
+import matplotlib.pyplot as plt
+
 import os
+from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 from botocore.exceptions import ClientError
@@ -14,6 +19,7 @@ from api.product.views import router as product_router
 
 logger = get_logger(__name__)
 
+matplotlib.use("agg")
 
 Base.metadata.create_all(bind=engine)
 
@@ -22,6 +28,10 @@ sqs_queue_url = os.environ.get(
     "SQS_QUEUE_URL",
     "https://sqs.us-east-1.amazonaws.com/830663695860/aws-app-task-queue",
 )
+
+
+class PlotRequest(BaseModel):
+    file_key: str
 
 
 def receive_sqs_messages():
@@ -138,6 +148,45 @@ def get_s3_presigned_url(file_key: str):
 
     except ClientError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/plot-df-upload-s3")
+def plot_df_upload_s3(request_data: PlotRequest):
+
+    file_key = request_data.file_key
+
+    s3_client = boto3.client("s3")
+    s3_client.head_object(Bucket=bucket_name, Key=file_key)
+    logger.info(f"Object with key {file_key} found!")
+
+    s3_path = f"s3://{bucket_name}/{file_key}"
+    df = pd.read_csv(s3_path)
+
+    plot = df.plot(title="Series values")
+    fig = plot.get_figure()
+
+    img_buffer = io.BytesIO()
+    fig.savefig(img_buffer, format="png")
+    img_buffer.seek(0)
+
+    s3 = boto3.client("s3")
+    image_file_key = f"plots/{file_key.replace('.csv', '')}.png"
+
+    try:
+        s3.put_object(
+            Bucket=bucket_name, Key=file_key, Body=img_buffer, ContentType="image/png"
+        )
+        logger.info(f"Successfully uploaded to s3://{bucket_name}/{image_file_key}")
+        url = s3_client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket_name, "Key": image_file_key},
+            ExpiresIn=86400,
+        )
+        return {"file_key": image_file_key, "presigned_url": url}
+    except Exception as e:
+        logger.error(f"Error uploading: {e}")
+    finally:
+        plt.close(fig)  # Free up memory
 
 
 @app.post("/sqs")

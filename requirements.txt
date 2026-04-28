@@ -8,3 +8,5 @@ numpy
 pandas
 APScheduler
 s3fs
+matplotlib
+pydantic
