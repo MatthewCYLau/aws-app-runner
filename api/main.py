@@ -1,9 +1,10 @@
 from io import StringIO
 import io
 import json
+import time
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 import boto3
 import matplotlib
 import matplotlib.pyplot as plt
@@ -16,17 +17,32 @@ from botocore.exceptions import ClientError
 from api.config.database import Base, engine
 from api.config.logging import get_logger
 from api.product.views import router as product_router
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 logger = get_logger(__name__)
 
 matplotlib.use("agg")
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
 sqs_queue_url = os.environ.get(
     "SQS_QUEUE_URL",
     "https://sqs.us-east-1.amazonaws.com/830663695860/aws-app-task-queue",
+)
+
+
+AWS_TRANSACTION_COUNTER = Counter(
+    "aws_transactions_total",
+    "Total number of aws transactions",
+    ["status", "type"],
+)
+
+
+TX_LATENCY = Histogram(
+    "tx_duration_seconds",
+    "Time spent processing transaction",
+    buckets=(0.1, 0.5, 1.0, 2.5, 5.0, 10.0),
 )
 
 
@@ -191,12 +207,24 @@ def plot_df_upload_s3(request_data: PlotRequest):
 
 @app.post("/sqs")
 def publish_sqs():
+    start_time = time.perf_counter()
     sqs_client = boto3.client("sqs", region_name="us-east-1")
     try:
         response = sqs_client.send_message(
             QueueUrl=sqs_queue_url,
             MessageBody=json.dumps({"counter": int(get_random_int())}),
         )
+        AWS_TRANSACTION_COUNTER.labels(status="in_progress", type="sqs").inc()
         return {"status": "queued", "message_id": response.get("MessageId")}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        end_time = time.perf_counter()
+        duration = start_time - end_time
+        TX_LATENCY.observe(duration)
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

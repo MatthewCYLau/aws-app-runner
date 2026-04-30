@@ -12,11 +12,11 @@ ssh-keygen -t ed25519 -f ~/.ssh/aws_app -C aws_app
 
 ```
 chmod 600 ~/.ssh/aws_app
-ssh -i ~/.ssh/aws_app ec2-user@44.212.24.112
+ssh -i ~/.ssh/aws_app ec2-user@98.82.2.241
 ```
 
 ## Connect to RDS database
 
 ```
-psql "host=$RDSHOST port=5432 dbname=apprunnerdb user=postgres_admin password=<PASSWORD>"
+psql "host=$RDSHOST port=5432 dbname=apprunnerdb user=postgres_admin password=password"
 ```
