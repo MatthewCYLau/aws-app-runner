@@ -11,6 +11,13 @@ resource "aws_db_instance" "postgres" {
 
   db_subnet_group_name   = aws_db_subnet_group.postgres.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
+
+  monitoring_interval = 60
+  monitoring_role_arn = aws_iam_role.rds_enhanced_monitoring.arn
+
+  performance_insights_enabled          = true
+  performance_insights_retention_period = 7
+
   tags = merge(
     local.common_tags,
     { Name = "AWS ECS App PostgreSQL DB" }
