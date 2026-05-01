@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 
 matplotlib.use("agg")
 
-# Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
 sqs_queue_url = os.environ.get(
