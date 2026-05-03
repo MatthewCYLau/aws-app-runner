@@ -8,9 +8,9 @@ resource "aws_db_instance" "postgres" {
   password                            = var.db_password
   iam_database_authentication_enabled = true
   skip_final_snapshot                 = true
-
-  db_subnet_group_name   = aws_db_subnet_group.postgres.name
-  vpc_security_group_ids = [aws_security_group.rds_sg.id]
+  multi_az                            = true
+  db_subnet_group_name                = aws_db_subnet_group.postgres.name
+  vpc_security_group_ids              = [aws_security_group.rds_sg.id]
 
   monitoring_interval = 60
   monitoring_role_arn = aws_iam_role.rds_enhanced_monitoring.arn
