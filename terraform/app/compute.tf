@@ -11,6 +11,7 @@ resource "aws_instance" "compute_instance" {
   vpc_security_group_ids = ["${aws_security_group.bastion_vm.id}"]
   key_name               = aws_key_pair.ec2_key.key_name
   user_data              = file("./scripts/start_up.sh")
+  iam_instance_profile   = aws_iam_instance_profile.ec2_s3_profile.name
   ebs_block_device {
     device_name           = "/dev/sdh"
     volume_size           = 1
@@ -48,6 +49,11 @@ resource "aws_volume_attachment" "ebs_att" {
   instance_id = aws_instance.compute_instance.id
 }
 */
+
+resource "aws_iam_instance_profile" "ec2_s3_profile" {
+  name = "ec2-s3-instance-profile"
+  role = aws_iam_role.ec2_s3_access_role.name
+}
 
 output "ec2_public_ip" {
   value = aws_instance.compute_instance.public_ip
