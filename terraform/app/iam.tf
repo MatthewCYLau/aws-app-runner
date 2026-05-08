@@ -158,3 +158,29 @@ resource "aws_iam_role_policy_attachment" "s3_attach" {
   role       = aws_iam_role.ec2_s3_access_role.name
   policy_arn = aws_iam_policy.s3_list_policy.arn
 }
+
+data "aws_iam_policy_document" "dynamodb_rw_policy" {
+  statement {
+    actions = [
+      "dynamodb:PutItem",
+      "dynamodb:GetItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:Query",
+      "dynamodb:Scan"
+    ]
+    resources = [
+      aws_dynamodb_table.stock_positions.arn
+    ]
+  }
+}
+
+resource "aws_iam_policy" "ecs_dynamodb_access" {
+  name        = "ECSStockTrackerDynamoDBAccess"
+  description = "Allows ECS tasks to read and write to the stock positions table"
+  policy      = data.aws_iam_policy_document.dynamodb_rw_policy.json
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_dynamodb_attachment" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.ecs_dynamodb_access.arn
+}
