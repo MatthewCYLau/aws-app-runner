@@ -34,7 +34,37 @@ resource "aws_db_subnet_group" "postgres" {
   )
 }
 
+resource "null_resource" "db_setup" {
 
+  triggers = {
+    rds_endpoint = aws_db_instance.postgres.endpoint
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "ec2-user"
+    private_key = file(var.private_key_path)
+    host        = aws_instance.compute_instance.public_ip
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "export PGPASSWORD='${var.db_password}'",
+      <<-EOT
+      psql -h ${aws_db_instance.postgres.address} \
+           -U ${aws_db_instance.postgres.username} \
+           -d ${aws_db_instance.postgres.db_name} <<EOF
+      CREATE USER iam_user;
+      GRANT rds_iam TO iam_user;
+      GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO iam_user;
+      GRANT USAGE, CREATE ON SCHEMA public TO iam_user;
+      EOF
+      EOT
+    ]
+  }
+
+  depends_on = [aws_db_instance.postgres, aws_instance.compute_instance]
+}
 output "db_hostname" {
   value       = aws_db_instance.postgres.address
   description = "PostgreSQL database hostname"
