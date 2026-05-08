@@ -17,6 +17,7 @@ from botocore.exceptions import ClientError
 from api.config.database import Base, engine
 from api.config.logging import get_logger
 from api.product.views import router as product_router
+from api.position.views import router as position_router
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 logger = get_logger(__name__)
@@ -84,6 +85,7 @@ app = FastAPI(lifespan=lifespan)
 
 
 app.include_router(product_router)
+app.include_router(position_router)
 
 
 @app.get("/")
