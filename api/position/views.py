@@ -1,6 +1,7 @@
 import uuid
 import yfinance as yf
 import boto3
+from boto3.dynamodb.conditions import Key
 from datetime import datetime, timezone
 from decimal import Decimal
 from fastapi import APIRouter, status
@@ -48,3 +49,19 @@ def insert_stock_position(position_data: PositiontBase):
         return response
     except Exception as e:
         logger.error(f"Error inserting record: {e}")
+
+
+@router.get("/{position_id}")
+def get_position_by_id(
+    position_id: uuid.UUID,
+):
+    logger.info(f"Getting position {position_id}")
+    try:
+        response = table.query(
+            KeyConditionExpression=Key("PositionId").eq(str(position_id))
+        )
+        logger.info(f"Retrieved position {position_id}")
+        return response.get("Items")[0]
+    except Exception as e:
+        logger.error(f"Failed to fetch position {position_id}: {e}")
+        raise
