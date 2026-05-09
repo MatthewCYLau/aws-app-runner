@@ -1,17 +1,17 @@
 resource "aws_dynamodb_table" "stock_positions" {
   name         = "stock_trading_positions"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "StockSymbol"
-  range_key    = "Timestamp"
+  hash_key     = "PositionId" # partition key
+  range_key    = "CreatedAt"  # sort key
 
   attribute {
-    name = "StockSymbol"
+    name = "PositionId"
     type = "S"
   }
 
   attribute {
-    name = "Timestamp"
-    type = "N"
+    name = "CreatedAt"
+    type = "S"
   }
 
   tags = merge(

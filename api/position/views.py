@@ -1,3 +1,5 @@
+import uuid
+import yfinance as yf
 import boto3
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -16,22 +18,27 @@ dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 table = dynamodb.Table("stock_trading_positions")
 
 
+def get_stock_current_price(stock_symbol: str):
+    ticker = yf.Ticker(stock_symbol)
+    return round(ticker.fast_info["last_price"], 2)
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def insert_stock_position(position_data: PositiontBase):
 
-    delta = Decimal(str(position_data.current_price)) - Decimal(
-        str(position_data.open_price)
-    )
+    current_price = get_stock_current_price(position_data.stock_symbol)
+    delta = Decimal(str(current_price)) - Decimal(str(position_data.open_price))
 
-    timestamp = int(datetime.now(timezone.utc).timestamp())
+    timestamp = datetime.now(timezone.utc).isoformat()
 
     try:
         response = table.put_item(
             Item={
+                "PositionId": str(uuid.uuid4()),
                 "StockSymbol": position_data.stock_symbol,
-                "Timestamp": timestamp,
+                "CreatedAt": timestamp,
                 "OpenPrice": Decimal(str(position_data.open_price)),
-                "CurrentPrice": Decimal(str(position_data.current_price)),
+                "CurrentPrice": Decimal(str(current_price)),
                 "Delta": delta,
             }
         )

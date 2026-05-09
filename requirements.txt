@@ -11,3 +11,4 @@ s3fs
 matplotlib
 pydantic
 prometheus-client
+yfinance
