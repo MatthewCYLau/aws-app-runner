@@ -26,6 +26,19 @@ def get_stock_current_price(stock_symbol: str):
     return round(ticker.fast_info["last_price"], 2)
 
 
+@router.get("/")
+def get_stock_positions():
+    items = []
+    response = positions_table.scan()
+    items.extend(response.get("Items", []))
+
+    while "LastEvaluatedKey" in response:
+        response = positions_table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+        items.extend(response.get("Items", []))
+
+    return items
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def insert_stock_position(position_data: PositiontBase):
 
@@ -79,6 +92,7 @@ def batch_update_pnl():
         for pos in positions:
             position_id = pos["PositionId"]
             stock_symbol = pos["StockSymbol"]
+            created_at = pos["CreatedAt"]
             curr_price = Decimal(get_stock_current_price(stock_symbol))
             open_price = Decimal(str(pos["OpenPrice"]))
             quantity = Decimal(str(pos["Quantity"]))
@@ -90,8 +104,10 @@ def batch_update_pnl():
                 Item={
                     "PositionId": position_id,
                     "StockSymbol": stock_symbol,
-                    "CreatedAt": timestamp,
+                    "CreatedAt": created_at,
+                    "LastModified": timestamp,
                     "OpenPrice": Decimal(open_price),
+                    "CurrentPrice": curr_price,
                     "Quantity": quantity,
                     "TotalPnL": Decimal(str(total_pnl)),
                 }
