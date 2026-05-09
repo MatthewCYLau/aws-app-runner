@@ -17,7 +17,7 @@ from botocore.exceptions import ClientError
 from api.config.database import Base, engine
 from api.config.logging import get_logger
 from api.product.views import router as product_router
-from api.position.views import router as position_router
+from api.position.views import batch_update_pnl, router as position_router
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 logger = get_logger(__name__)
@@ -77,6 +77,7 @@ def receive_sqs_messages():
 async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler()
     scheduler.add_job(receive_sqs_messages, "interval", minutes=1)
+    scheduler.add_job(batch_update_pnl, "interval", minutes=1)
     scheduler.start()
     yield
 
