@@ -27,9 +27,6 @@ def get_stock_current_price(stock_symbol: str):
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def insert_stock_position(position_data: PositiontBase):
 
-    current_price = get_stock_current_price(position_data.stock_symbol)
-    delta = Decimal(str(current_price)) - Decimal(str(position_data.open_price))
-
     timestamp = datetime.now(timezone.utc).isoformat()
 
     try:
@@ -39,8 +36,11 @@ def insert_stock_position(position_data: PositiontBase):
                 "StockSymbol": position_data.stock_symbol,
                 "CreatedAt": timestamp,
                 "OpenPrice": Decimal(str(position_data.open_price)),
-                "CurrentPrice": Decimal(str(current_price)),
-                "Delta": delta,
+                "Quantity": position_data.quantity,
+                "Value": Decimal(
+                    str(position_data.open_price * position_data.quantity)
+                ),
+                "Open": True,
             }
         )
         logger.info(
