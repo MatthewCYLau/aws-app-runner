@@ -170,8 +170,8 @@ data "aws_iam_policy_document" "dynamodb_rw_policy" {
       "dynamodb:BatchWriteItem"
     ]
     resources = [
-      aws_dynamodb_table.stock_positions.arn,
-      aws_dynamodb_table.positions_pnl.arn,
+      module.stock_positions.dynamodb_table_arn,
+      module.positions_pnl.dynamodb_table_arn,
     ]
   }
 }
@@ -219,7 +219,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "dynamodb:ListStreams"
         ],
         Effect   = "Allow",
-        Resource = aws_dynamodb_table.positions_pnl.stream_arn
+        Resource = module.positions_pnl.dynamodb_table_stream_arn
       },
       {
         Action = [
@@ -231,7 +231,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "dynamodb:BatchWriteItem"
         ],
         Effect   = "Allow",
-        Resource = aws_dynamodb_table.stocks_pnl.arn
+        Resource = module.stocks_pnl.dynamodb_table_arn
       }
     ]
   })

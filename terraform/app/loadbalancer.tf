@@ -38,3 +38,7 @@ resource "aws_lb_target_group" "this" {
     unhealthy_threshold = "2"
   }
 }
+
+output "name" {
+  value = aws_lb.this.dns_name
+}
