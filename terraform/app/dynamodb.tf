@@ -44,3 +44,19 @@ resource "aws_dynamodb_table" "positions_pnl" {
     { Name = "AWS App Dynamo DB" }
   )
 }
+
+resource "aws_dynamodb_table" "stocks_pnl" {
+  name         = "stocks_pnl"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "StockSymbol" # partition key
+
+  attribute {
+    name = "StockSymbol"
+    type = "S"
+  }
+
+  tags = merge(
+    local.common_tags,
+    { Name = "AWS App Dynamo DB" }
+  )
+}

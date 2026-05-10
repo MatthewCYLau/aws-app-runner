@@ -220,6 +220,18 @@ resource "aws_iam_role_policy" "lambda_policy" {
         ],
         Effect   = "Allow",
         Resource = aws_dynamodb_table.positions_pnl.stream_arn
+      },
+      {
+        Action = [
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:BatchWriteItem"
+        ],
+        Effect   = "Allow",
+        Resource = aws_dynamodb_table.stocks_pnl.arn
       }
     ]
   })
