@@ -1,9 +1,17 @@
+
+data "archive_file" "pnl_aggregator" {
+  type        = "zip"
+  source_file = "lambda/pnl_aggregator.py"
+  output_path = "lambda/pnl_aggregator_lambda.zip"
+}
+
 resource "aws_lambda_function" "pnl_aggregator" {
-  filename      = "lambda/pnl_aggregator_lambda.zip"
-  function_name = "pnl_aggregator"
-  role          = aws_iam_role.lambda_pnl_role.arn
-  handler       = "pnl_aggregator_lambda.lambda_handler"
-  runtime       = "python3.12"
+  filename         = data.archive_file.pnl_aggregator.output_path
+  source_code_hash = data.archive_file.pnl_aggregator.output_base64sha256
+  function_name    = "pnl_aggregator"
+  role             = aws_iam_role.lambda_pnl_role.arn
+  handler          = "pnl_aggregator.main"
+  runtime          = "python3.12"
 }
 
 resource "aws_lambda_event_source_mapping" "trigger" {

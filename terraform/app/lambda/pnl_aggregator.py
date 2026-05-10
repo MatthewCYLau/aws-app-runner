@@ -1,7 +1,11 @@
 import boto3
 import botocore
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
-def lambda_handler(event, context):
-    print(f"Boto3 version: {boto3.__version__}")
-    print(f"Botocore version: {botocore.__version__}")
+def main(event, context):
+    logger.info(f"Boto3 version: {boto3.__version__}")
+    logger.info(f"Botocore version: {botocore.__version__}")

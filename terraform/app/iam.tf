@@ -166,7 +166,8 @@ data "aws_iam_policy_document" "dynamodb_rw_policy" {
       "dynamodb:GetItem",
       "dynamodb:UpdateItem",
       "dynamodb:Query",
-      "dynamodb:Scan"
+      "dynamodb:Scan",
+      "dynamodb:BatchWriteItem"
     ]
     resources = [
       aws_dynamodb_table.stock_positions.arn,
