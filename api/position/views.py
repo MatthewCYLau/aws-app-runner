@@ -93,9 +93,9 @@ def batch_update_pnl():
             position_id = pos["PositionId"]
             stock_symbol = pos["StockSymbol"]
             created_at = pos["CreatedAt"]
-            curr_price = Decimal(get_stock_current_price(stock_symbol))
-            open_price = Decimal(str(pos["OpenPrice"]))
-            quantity = Decimal(str(pos["Quantity"]))
+            curr_price = Decimal(str(get_stock_current_price(stock_symbol)))
+            open_price = pos["OpenPrice"]
+            quantity = pos["Quantity"]
 
             total_pnl = round(((curr_price - open_price) * quantity), 2)
             timestamp = datetime.now(timezone.utc).isoformat()
@@ -106,7 +106,7 @@ def batch_update_pnl():
                     "StockSymbol": stock_symbol,
                     "CreatedAt": created_at,
                     "LastModified": timestamp,
-                    "OpenPrice": Decimal(open_price),
+                    "OpenPrice": Decimal(str(open_price)),
                     "CurrentPrice": curr_price,
                     "Quantity": quantity,
                     "TotalPnL": Decimal(str(total_pnl)),

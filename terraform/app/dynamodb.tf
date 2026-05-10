@@ -26,6 +26,9 @@ resource "aws_dynamodb_table" "positions_pnl" {
   hash_key     = "PositionId" # partition key
   range_key    = "CreatedAt"  # sort key
 
+  stream_enabled   = true
+  stream_view_type = "NEW_AND_OLD_IMAGES"
+
   attribute {
     name = "PositionId"
     type = "S"
