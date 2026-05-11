@@ -100,6 +100,32 @@ def get_position_by_id(
         raise
 
 
+@router.delete("/{position_id}")
+def delete_position_by_id(
+    position_id: uuid.UUID,
+):
+    logger.info(f"Delete position {position_id}")
+    try:
+
+        response = positions_table.query(
+            KeyConditionExpression=Key("PositionId").eq(str(position_id))
+        )
+        items = response.get("Items", [])
+
+        if not items:
+            raise NotFoundException(f"Position with id {position_id} not found")
+
+        for item in items:
+            positions_table.delete_item(
+                Key={"PositionId": item["PositionId"], "CreatedAt": item["CreatedAt"]}
+            )
+
+        logger.info("Delete successful")
+    except Exception as e:
+        logger.error(f"Failed to delete position {position_id}: {e}")
+        raise
+
+
 def batch_update_pnl():
 
     positions = positions_table.scan().get("Items", [])
