@@ -1,13 +1,14 @@
 import uuid
+from api.utils.date_util import validate_date_string
 import yfinance as yf
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime, timezone
 from decimal import Decimal
 from fastapi import APIRouter, status
 
 
-from api.config.exception import NotFoundException
+from api.config.exception import BadRequestException, NotFoundException
 from api.config.logging import get_logger
 from api.position.schemas import PositiontBase
 
@@ -27,7 +28,22 @@ def get_stock_current_price(stock_symbol: str):
 
 
 @router.get("/")
-def get_stock_positions():
+def get_stock_positions(startDate: str = None, endDate: str = None):
+
+    dates_input = [startDate, endDate]
+
+    if all(dates_input) and not all([validate_date_string(i) for i in dates_input]):
+        raise BadRequestException(
+            detail="Invalid date input. Must be in format YYYY-MM-DD"
+        )
+
+    if startDate and endDate:
+        response = positions_table.scan(
+            FilterExpression=Attr("CreatedAt").between(startDate, endDate)
+        )
+        items = response["Items"]
+        return items
+
     items = []
     response = positions_table.scan()
     items.extend(response.get("Items", []))
