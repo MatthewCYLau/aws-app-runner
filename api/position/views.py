@@ -10,7 +10,7 @@ from fastapi import APIRouter, status
 
 from api.config.exception import BadRequestException, NotFoundException
 from api.config.logging import get_logger
-from api.position.schemas import PositiontBase
+from api.position.schemas import PositiontBase, UpdatePositiontRequest
 
 logger = get_logger(__name__)
 
@@ -123,6 +123,47 @@ def delete_position_by_id(
         logger.info("Delete successful")
     except Exception as e:
         logger.error(f"Failed to delete position {position_id}: {e}")
+        raise
+
+
+@router.put("/{position_id}")
+def update_position_by_id(
+    position_id: uuid.UUID, position_data: UpdatePositiontRequest
+):
+    logger.info(f"Updating position {position_id}")
+    try:
+        response = positions_table.query(
+            KeyConditionExpression=boto3.dynamodb.conditions.Key("PositionId").eq(
+                str(position_id)
+            )
+        )
+
+        items = response.get("Items", [])
+
+        if not items:
+            raise NotFoundException(f"Position with id {position_id} not found")
+
+        sort_key_value = items[0]["CreatedAt"]
+
+        response = positions_table.update_item(
+            Key={"PositionId": str(position_id), "CreatedAt": sort_key_value},
+            UpdateExpression="SET OpenPrice = :p, Qty = :q, #v = :v",
+            ExpressionAttributeNames={
+                "#v": "Value"  # 'Value' is a reserved keyword in DynamoDB
+            },
+            ExpressionAttributeValues={
+                ":p": Decimal(str(position_data.open_price)),
+                ":q": position_data.quantity,
+                ":v": Decimal(str(position_data.open_price * position_data.quantity)),
+            },
+            ReturnValues="ALL_NEW",
+        )
+
+        logger.info(f"Successfully updated position {position_id}")
+        return response
+
+    except Exception as e:
+        logger.error(f"Failed to fetch position {position_id}: {e}")
         raise
 
 
