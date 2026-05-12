@@ -167,6 +167,7 @@ data "aws_iam_policy_document" "dynamodb_rw_policy" {
       "dynamodb:UpdateItem",
       "dynamodb:Query",
       "dynamodb:Scan",
+      "dynamodb:DeleteItem",
       "dynamodb:BatchWriteItem"
     ]
     resources = [
