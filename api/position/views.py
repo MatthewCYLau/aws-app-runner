@@ -148,7 +148,7 @@ def update_position_by_id(
 
         response = positions_table.update_item(
             Key={"PositionId": str(position_id), "CreatedAt": sort_key_value},
-            UpdateExpression="SET OpenPrice = :p, Qty = :q, #v = :v, LastModified = :lm",
+            UpdateExpression="SET OpenPrice = :p, Quantity = :q, #v = :v, LastModified = :lm",
             ExpressionAttributeNames={
                 "#v": "Value"  # 'Value' is a reserved keyword in DynamoDB
             },
