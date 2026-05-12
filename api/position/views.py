@@ -66,6 +66,7 @@ def insert_stock_position(position_data: PositiontBase):
                 "PositionId": str(uuid.uuid4()),
                 "StockSymbol": position_data.stock_symbol,
                 "CreatedAt": timestamp,
+                "LastModified": timestamp,
                 "OpenPrice": Decimal(str(position_data.open_price)),
                 "Quantity": position_data.quantity,
                 "Value": Decimal(
@@ -147,7 +148,7 @@ def update_position_by_id(
 
         response = positions_table.update_item(
             Key={"PositionId": str(position_id), "CreatedAt": sort_key_value},
-            UpdateExpression="SET OpenPrice = :p, Qty = :q, #v = :v",
+            UpdateExpression="SET OpenPrice = :p, Qty = :q, #v = :v, LastModified = :lm",
             ExpressionAttributeNames={
                 "#v": "Value"  # 'Value' is a reserved keyword in DynamoDB
             },
@@ -155,6 +156,7 @@ def update_position_by_id(
                 ":p": Decimal(str(position_data.open_price)),
                 ":q": position_data.quantity,
                 ":v": Decimal(str(position_data.open_price * position_data.quantity)),
+                ":lm": datetime.now(timezone.utc).isoformat(),
             },
             ReturnValues="ALL_NEW",
         )

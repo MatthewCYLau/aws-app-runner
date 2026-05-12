@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import boto3
 import logging
+from datetime import datetime, timezone
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -26,6 +27,9 @@ def main(event, context):
             # Atomic update in the aggregate table
             stocks_pnl_table.update_item(
                 Key={"StockSymbol": ticker},
-                UpdateExpression="ADD TotalPnL :val",
-                ExpressionAttributeValues={":val": pnl_delta},
+                UpdateExpression="SET LastModified = :lm ADD TotalPnL :val",
+                ExpressionAttributeValues={
+                    ":val": pnl_delta,
+                    ":lm": datetime.now(timezone.utc).isoformat(),
+                },
             )
