@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -10,3 +12,4 @@ class PositiontBase(BaseModel):
 class UpdatePositiontRequest(BaseModel):
     open_price: float
     quantity: int
+    isOpen: Optional[bool] = True

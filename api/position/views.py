@@ -148,13 +148,14 @@ def update_position_by_id(
 
         response = positions_table.update_item(
             Key={"PositionId": str(position_id), "CreatedAt": sort_key_value},
-            UpdateExpression="SET OpenPrice = :p, Quantity = :q, #v = :v, LastModified = :lm",
+            UpdateExpression="SET OpenPrice = :p, Quantity = :q, Open = :o, #v = :v, LastModified = :lm",
             ExpressionAttributeNames={
                 "#v": "Value"  # 'Value' is a reserved keyword in DynamoDB
             },
             ExpressionAttributeValues={
                 ":p": Decimal(str(position_data.open_price)),
                 ":q": position_data.quantity,
+                ":o": position_data.isOpen,
                 ":v": Decimal(str(position_data.open_price * position_data.quantity)),
                 ":lm": datetime.now(timezone.utc).isoformat(),
             },
@@ -171,10 +172,18 @@ def update_position_by_id(
 
 def batch_update_pnl():
 
-    positions = positions_table.scan().get("Items", [])
+    response = positions_table.scan(FilterExpression=Attr("Open").eq(True))
+    positions_to_update = response.get("Items", [])
+
+    while "LastEvaluatedKey" in response:
+        response = positions_table.scan(
+            FilterExpression=Attr("Open").eq(True),
+            ExclusiveStartKey=response["LastEvaluatedKey"],
+        )
+        positions_to_update.extend(response.get("Items", []))
 
     with pnl_table.batch_writer() as batch:
-        for pos in positions:
+        for pos in positions_to_update:
             position_id = pos["PositionId"]
             stock_symbol = pos["StockSymbol"]
             created_at = pos["CreatedAt"]
