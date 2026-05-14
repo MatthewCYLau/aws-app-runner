@@ -12,6 +12,7 @@ resource "aws_lambda_function" "pnl_aggregator" {
   role             = aws_iam_role.lambda_pnl_role.arn
   handler          = "pnl_aggregator.main"
   runtime          = "python3.12"
+  layers           = ["arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python312:24"]
 }
 
 resource "aws_lambda_event_source_mapping" "trigger" {

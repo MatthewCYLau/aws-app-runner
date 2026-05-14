@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import boto3
 import logging
+import numpy as np
 from datetime import datetime, timezone
 
 logger = logging.getLogger()
@@ -11,6 +12,7 @@ stocks_pnl_table = dynamodb.Table("stocks_pnl")
 
 
 def main(event, context):
+    pnl_deltas = []
     for record in event["Records"]:
         if record["eventName"] in ["INSERT", "MODIFY"]:
             # Get the new and old values to calculate the change
@@ -23,7 +25,7 @@ def main(event, context):
 
             # Calculate the difference (delta)
             pnl_delta = new_pnl - old_pnl
-
+            pnl_deltas.append(pnl_delta)
             # Atomic update in the aggregate table
             stocks_pnl_table.update_item(
                 Key={"StockSymbol": ticker},
@@ -33,3 +35,7 @@ def main(event, context):
                     ":lm": datetime.now(timezone.utc).isoformat(),
                 },
             )
+
+    pnl_deltas_array = np.array(pnl_deltas)
+    mean = pnl_deltas_array.mean()
+    logger.info(f"PnL delta mean: {mean}")

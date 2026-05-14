@@ -208,4 +208,4 @@ def batch_update_pnl():
                 }
             )
 
-    logger.info(f"Batch update complete for {len(positions)} records.")
+    logger.info(f"Batch update complete for {len(positions_to_update)} records.")
