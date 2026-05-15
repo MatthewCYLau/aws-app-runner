@@ -108,8 +108,6 @@ def plot_stock_positions():
 
     df = df.sort_values(by="TotalPnL", ascending=False)
 
-    logger.info(df)
-
     _ = plt.figure(num=1, clear=True, figsize=(10, 6))
     colors = ["green" if x > 0 else "red" for x in df["TotalPnL"]]
 
@@ -147,8 +145,6 @@ def plot_stock_positions():
         return {"file_key": image_file_key, "presigned_url": url}
     except Exception as e:
         logger.error(f"Error uploading: {e}")
-    finally:
-        plt.close(fig_to_upload)
 
 
 @router.get("/{position_id}")
