@@ -1,7 +1,12 @@
+import io
+import os
 import uuid
+
+from matplotlib import pyplot as plt
 from api.utils.date_util import validate_date_string
 import yfinance as yf
 import boto3
+import pandas as pd
 from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -18,8 +23,10 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/api/v1/positions", tags=["positions"])
 
 dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
 positions_table = dynamodb.Table("stock_trading_positions")
 pnl_table = dynamodb.Table("positions_pnl")
+stocks_pnl_table = dynamodb.Table("stocks_pnl")
 
 
 def get_stock_current_price(stock_symbol: str):
@@ -81,6 +88,67 @@ def insert_stock_position(position_data: PositiontBase):
         return response
     except Exception as e:
         logger.error(f"Error inserting record: {e}")
+
+
+@router.get("/plot")
+def plot_stock_positions():
+
+    items = []
+    response = stocks_pnl_table.scan()
+    items.extend(response.get("Items", []))
+
+    while "LastEvaluatedKey" in response:
+        response = positions_table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+        items.extend(response.get("Items", []))
+
+    df = pd.DataFrame(items)
+    df["TotalPnL"] = df["TotalPnL"].apply(
+        lambda x: float(x) if isinstance(x, Decimal) else x
+    )
+
+    df = df.sort_values(by="TotalPnL", ascending=False)
+
+    logger.info(df)
+
+    _ = plt.figure(num=1, clear=True, figsize=(10, 6))
+    colors = ["green" if x > 0 else "red" for x in df["TotalPnL"]]
+
+    plt.bar(df["StockSymbol"], df["TotalPnL"], color=colors)
+
+    plt.axhline(0, color="black", linewidth=0.8)
+    plt.title("Portfolio PnL by stock symbol")
+    plt.xlabel("Stock symbol")
+    plt.ylabel("Profit / Loss ($)")
+    plt.xticks(rotation=45)
+    plt.grid(axis="y", linestyle="--", alpha=0.7)
+
+    fig_to_upload = plt.gcf()
+    img_buffer = io.BytesIO()
+    fig_to_upload.savefig(img_buffer, format="png")
+    img_buffer.seek(0)
+
+    s3_client = boto3.client("s3")
+    file_key = str(datetime.now(timezone.utc).timestamp())
+    image_file_key = f"plots/{file_key}.png"
+
+    try:
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key=image_file_key,
+            Body=img_buffer,
+            ContentType="image/png",
+        )
+        logger.info(f"Successfully uploaded to s3://{bucket_name}/{image_file_key}")
+        url = s3_client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket_name, "Key": image_file_key},
+            ExpiresIn=86400,
+        )
+        return {"file_key": image_file_key, "presigned_url": url}
+    except Exception as e:
+        logger.error(f"Error uploading: {e}")
+    finally:
+        plt.close(fig_to_upload)
 
 
 @router.get("/{position_id}")
