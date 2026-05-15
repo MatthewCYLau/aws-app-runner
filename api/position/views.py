@@ -2,10 +2,15 @@ import io
 import os
 import uuid
 
+import boto3
 from matplotlib import pyplot as plt
+from api.config.constants import (
+    POSITIONS_PNL_TABLE,
+    STOCK_TRADING_POSITIONS_TABLE,
+    STOCKS_PNL,
+)
 from api.utils.date_util import validate_date_string
 import yfinance as yf
-import boto3
 import pandas as pd
 from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime, timezone
@@ -16,17 +21,14 @@ from fastapi import APIRouter, status
 from api.config.exception import BadRequestException, NotFoundException
 from api.config.logging import get_logger
 from api.position.schemas import PositiontBase, UpdatePositiontRequest
+from api.utils.dynamodb_util import get_dynamodb_table_client
 
 logger = get_logger(__name__)
 
 
 router = APIRouter(prefix="/api/v1/positions", tags=["positions"])
 
-dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
-positions_table = dynamodb.Table("stock_trading_positions")
-pnl_table = dynamodb.Table("positions_pnl")
-stocks_pnl_table = dynamodb.Table("stocks_pnl")
 
 
 def get_stock_current_price(stock_symbol: str):
@@ -43,6 +45,8 @@ def get_stock_positions(startDate: str = None, endDate: str = None):
         raise BadRequestException(
             detail="Invalid date input. Must be in format YYYY-MM-DD"
         )
+
+    positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)
 
     if startDate and endDate:
         response = positions_table.scan(
@@ -66,6 +70,7 @@ def get_stock_positions(startDate: str = None, endDate: str = None):
 def insert_stock_position(position_data: PositiontBase):
 
     timestamp = datetime.now(timezone.utc).isoformat()
+    positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)
 
     try:
         response = positions_table.put_item(
@@ -94,11 +99,12 @@ def insert_stock_position(position_data: PositiontBase):
 def plot_stock_positions():
 
     items = []
+    stocks_pnl_table = get_dynamodb_table_client(STOCKS_PNL)
     response = stocks_pnl_table.scan()
     items.extend(response.get("Items", []))
 
     while "LastEvaluatedKey" in response:
-        response = positions_table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+        response = stocks_pnl_table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
         items.extend(response.get("Items", []))
 
     df = pd.DataFrame(items)
@@ -152,6 +158,8 @@ def get_position_by_id(
     position_id: uuid.UUID,
 ):
     logger.info(f"Getting position {position_id}")
+    positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)
+
     try:
         response = positions_table.query(
             KeyConditionExpression=Key("PositionId").eq(str(position_id))
@@ -170,6 +178,8 @@ def delete_position_by_id(
     position_id: uuid.UUID,
 ):
     logger.info(f"Delete position {position_id}")
+    positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)
+
     try:
 
         response = positions_table.query(
@@ -196,6 +206,8 @@ def update_position_by_id(
     position_id: uuid.UUID, position_data: UpdatePositiontRequest
 ):
     logger.info(f"Updating position {position_id}")
+    positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)
+
     try:
         response = positions_table.query(
             KeyConditionExpression=boto3.dynamodb.conditions.Key("PositionId").eq(
@@ -237,6 +249,7 @@ def update_position_by_id(
 
 def batch_update_pnl():
 
+    positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)
     response = positions_table.scan(FilterExpression=Attr("Open").eq(True))
     positions_to_update = response.get("Items", [])
 
@@ -246,6 +259,8 @@ def batch_update_pnl():
             ExclusiveStartKey=response["LastEvaluatedKey"],
         )
         positions_to_update.extend(response.get("Items", []))
+
+    pnl_table = get_dynamodb_table_client(POSITIONS_PNL_TABLE)
 
     with pnl_table.batch_writer() as batch:
         for pos in positions_to_update:

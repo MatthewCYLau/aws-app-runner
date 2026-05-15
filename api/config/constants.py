@@ -1,0 +1,3 @@
+STOCK_TRADING_POSITIONS_TABLE = "stock_trading_positions"
+POSITIONS_PNL_TABLE = "positions_pnl"
+STOCKS_PNL = "stocks_pnl"
