@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aws-app-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: aws-app
+  template:
+    metadata:
+      labels:
+        app: aws-app
+    spec:
+      serviceAccountName: app-sa
+      containers:
+        - name: aws-app
+          image: 830663695860.dkr.ecr.us-east-1.amazonaws.com/aws-app-runner:latest
+          env:
+            - name: DB_HOST
+              value: terraform-20260516064150169800000019.c3bji2qrl6dz.us-east-1.rds.amazonaws.com
+            - name: S3_BUCKET_NAME
+              value: aws-app-runner-assets
+            - name: SQS_QUEUE_URL
+              value: https://sqs.us-east-1.amazonaws.com/830663695860/aws-app-task-queue
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aws-app-service
+spec:
+  selector:
+    app: aws-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aws-app-ingress
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: aws-app-service
+                port:
+                  number: 80

@@ -32,6 +32,22 @@ resource "aws_iam_role" "ecs_task_role" {
           Service = "ecs-tasks.amazonaws.com"
         }
       },
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "pods.eks.amazonaws.com"
+        }
+      },
+      {
+        Action = "sts:TagSession"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "pods.eks.amazonaws.com"
+        }
+      },
     ]
   })
 }
@@ -237,4 +253,11 @@ resource "aws_iam_role_policy" "lambda_policy" {
       }
     ]
   })
+}
+
+resource "aws_eks_pod_identity_association" "s3_access" {
+  cluster_name    = module.eks.cluster_name
+  namespace       = "dev"
+  service_account = "app-sa"
+  role_arn        = aws_iam_role.ecs_task_role.arn
 }
