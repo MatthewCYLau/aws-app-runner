@@ -247,6 +247,54 @@ def update_position_by_id(
         raise
 
 
+def get_historical_pnl(position_id, limit=30):
+    pnl_table = get_dynamodb_table_client(POSITIONS_PNL_TABLE)
+    response = pnl_table.query(
+        KeyConditionExpression=boto3.dynamodb.conditions.Key("PositionId").eq(
+            position_id
+        ),
+        ScanIndexForward=False,
+        Limit=limit,
+    )
+
+    return response.get("Items", [])
+
+
+def validate_new_pnl(historical_items, new_pnl, method="z_score", threshold=3.0):
+    """
+    Validates if the new PnL deviates heavily from historical norms.
+    Returns (is_valid, message)
+    """
+    if not historical_items:
+        return True, "No history available. Baseline established."
+
+    df = pd.DataFrame(historical_items)
+
+    # Ensure numerical types
+    df["TotalPnL"] = pd.to_numeric(df["TotalPnL"])
+    pnl_series = df["TotalPnL"]
+
+    if len(pnl_series) < 1:
+        return True, "Insufficient history for robust validation."
+
+    if method == "z_score":
+        mean = pnl_series.mean()
+        std = pnl_series.std()
+
+        if std == 0:
+            std = 0.01
+
+        z_score = abs(new_pnl - mean) / std
+
+        if z_score > threshold:
+            return (
+                False,
+                f"Rejected: Z-Score is {z_score:.2f} (Threshold: {threshold}). Expected mean around {mean:.2f}.",
+            )
+
+    return True, "Valid"
+
+
 def batch_update_pnl():
 
     positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)
@@ -273,6 +321,18 @@ def batch_update_pnl():
 
             total_pnl = round(((curr_price - open_price) * quantity), 2)
             timestamp = datetime.now(timezone.utc).isoformat()
+
+            history = get_historical_pnl(position_id, limit=50)
+
+            is_valid, message = validate_new_pnl(
+                history, total_pnl, method="iqr", threshold=3.0
+            )
+
+            if is_valid:
+                logger.info("Metrics healthy. Writing to DynamoDB...")
+            else:
+                logger.warn(f"CRITICAL: Data validation failed! {message}")
+                return
 
             batch.put_item(
                 Item={
