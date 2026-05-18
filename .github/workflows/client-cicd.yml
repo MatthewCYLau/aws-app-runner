@@ -1,11 +1,11 @@
-name: Build and deploy to AWS App Runner
+name: Build and deploy client to ECS
 
 on:
   push:
     branches:
       - main
     paths:
-      - "api/**"
+      - "client/**"
   workflow_dispatch:
 
 permissions:
@@ -29,22 +29,13 @@ jobs:
       - name: Build, Tag, and Push Image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: aws-app-runner
+          ECR_REPOSITORY: streamlit-dashboard
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          cd /client
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
 
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-      - name: Download task definition
-        run: |
-          aws ecs describe-task-definition --task-definition aws-app-task-definition --query taskDefinition > task-definition.json
-      - name: Deploy to Amazon ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: task-definition.json
-          service: aws-app-service
-          cluster: aws-app-cluster
-          wait-for-service-stability: true
