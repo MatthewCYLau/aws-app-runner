@@ -49,10 +49,59 @@ resource "aws_ecs_service" "this" {
     container_port   = 8080
   }
 
-  depends_on = [aws_lb_listener.https_forward, aws_iam_role.ecs_task_execution_role]
+  depends_on = [aws_lb_listener.http_forward, aws_iam_role.ecs_task_execution_role]
 
   tags = merge(
     local.common_tags,
     { Name = "aws-ecs-app-service" }
+  )
+}
+
+# streamlit dashboard
+resource "aws_ecs_task_definition" "dashboard" {
+  family                   = "streamlit-dashboard-task-definition"
+  network_mode             = "awsvpc"
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
+  cpu                      = 256
+  memory                   = 2048
+  requires_compatibilities = ["FARGATE"]
+  container_definitions = templatefile("task-definitions/dashboard.json.tpl", {
+    aws_ecr_repository            = aws_ecr_repository.client.repository_url
+    tag                           = "latest"
+    container_name                = "streamlit-dashboard"
+    aws_cloudwatch_log_group_name = aws_cloudwatch_log_group.dashboard.name
+  })
+  tags = merge(
+    local.common_tags,
+    { Name = "streamlit-dashboard-task-definition" }
+  )
+}
+
+resource "aws_ecs_service" "dashboard" {
+  name                       = "streamlit-dashboard-service"
+  cluster                    = aws_ecs_cluster.main.id
+  task_definition            = aws_ecs_task_definition.dashboard.arn
+  desired_count              = 1
+  deployment_maximum_percent = 250
+  launch_type                = "FARGATE"
+
+  network_configuration {
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    subnets          = aws_subnet.private.*.id
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.client.arn
+    container_name   = "streamlit-dashboard"
+    container_port   = 8501
+  }
+
+  depends_on = [aws_lb_listener.http_forward, aws_iam_role.ecs_task_execution_role]
+
+  tags = merge(
+    local.common_tags,
+    { Name = "streamlit-dashboard-service" }
   )
 }

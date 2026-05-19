@@ -7,6 +7,15 @@ resource "aws_cloudwatch_log_group" "this" {
   )
 }
 
+resource "aws_cloudwatch_log_group" "dashboard" {
+  name = "/aws/ecs/streamlit-dashboard"
+
+  tags = merge(
+    local.common_tags,
+    { Name = "streamlit-dashboard-cloudwatch-logs" }
+  )
+}
+
 resource "aws_cloudwatch_log_metric_filter" "transaction_filter" {
   name           = "NewProductCreationFilter"
   pattern        = "\"registering_product\""
