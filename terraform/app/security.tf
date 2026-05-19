@@ -84,7 +84,7 @@ resource "aws_security_group" "ecs_tasks" {
   ingress {
     protocol        = "tcp"
     from_port       = 8080
-    to_port         = 8080
+    to_port         = 8501
     cidr_blocks     = ["0.0.0.0/0"]
     security_groups = [aws_security_group.lb.id]
   }
