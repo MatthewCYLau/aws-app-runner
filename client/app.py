@@ -5,6 +5,24 @@ import boto3
 st.title("📈 Stock PnL Tracker")
 
 dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+
+pnl_table = dynamodb.Table("positions_pnl")
+
+items = []
+response = pnl_table.scan()
+items.extend(response.get("Items", []))
+
+while "LastEvaluatedKey" in response:
+    response = pnl_table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+    items.extend(response.get("Items", []))
+
+df = pd.DataFrame(items)
+df = df.set_index("PositionId")
+
+st.subheader("PnL by postion ID")
+st.dataframe(df.tail(10))
+
 stocks_pnl_table = dynamodb.Table("stocks_pnl")
 
 items = []
@@ -18,6 +36,5 @@ while "LastEvaluatedKey" in response:
 df = pd.DataFrame(items)
 df = df.set_index("StockSymbol")
 
-# 3. Display the raw data table below it
-st.subheader("Raw Data Summary")
-st.dataframe(df.tail(10))  # Shows the last 10 days of trading
+st.subheader("PnL by stock symbol")
+st.dataframe(df.tail(10))
