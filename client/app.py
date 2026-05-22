@@ -1,12 +1,26 @@
+import yfinance as yf
 import streamlit as st
 import pandas as pd
 import boto3
 
 st.title("📈 Stock PnL Tracker")
 
+
+open_price = 200
+quantity = 10
+
+stock_symbol = "AAPL"
+
+data = yf.Ticker(stock_symbol)
+df = data.history(period="1mo")
+
+df["Daily PnL"] = (df["Close"] - open_price) * quantity
+dail_pnl_df = df[["Daily PnL"]]
+
+st.subheader(f"{stock_symbol} daily PnL")
+st.line_chart(dail_pnl_df)
+
 dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-
 pnl_table = dynamodb.Table("positions_pnl")
 
 items = []
