@@ -6,36 +6,40 @@ import boto3
 st.title("📈 Stock PnL Tracker")
 
 
-open_price = 200
-quantity = 10
+def plot_position_daily_pnl(open_price: float, quantity: int, stock_symbol: str):
 
-stock_symbol = "AAPL"
+    data = yf.Ticker(stock_symbol)
+    df = data.history(period="1mo")
 
-data = yf.Ticker(stock_symbol)
-df = data.history(period="1mo")
+    df["Daily PnL"] = (df["Close"] - open_price) * quantity
+    dail_pnl_df = df[["Daily PnL"]]
 
-df["Daily PnL"] = (df["Close"] - open_price) * quantity
-dail_pnl_df = df[["Daily PnL"]]
+    st.subheader(f"{stock_symbol} daily PnL")
+    st.line_chart(dail_pnl_df)
 
-st.subheader(f"{stock_symbol} daily PnL")
-st.line_chart(dail_pnl_df)
 
 dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 pnl_table = dynamodb.Table("positions_pnl")
 
-items = []
+positions = []
 response = pnl_table.scan()
-items.extend(response.get("Items", []))
+positions.extend(response.get("Items", []))
 
 while "LastEvaluatedKey" in response:
     response = pnl_table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
-    items.extend(response.get("Items", []))
+    positions.extend(response.get("Items", []))
 
-df = pd.DataFrame(items)
+df = pd.DataFrame(positions)
 df = df.set_index("PositionId")
 
 st.subheader("PnL by postion ID")
 st.dataframe(df.tail(10))
+
+for stock_position in positions:
+    open_price = float(stock_position.get("OpenPrice"))
+    quantity = int(stock_position.get("Quantity"))
+    stock_symbol = stock_position.get("StockSymbol")
+    plot_position_daily_pnl(open_price, quantity, stock_symbol)
 
 stocks_pnl_table = dynamodb.Table("stocks_pnl")
 
