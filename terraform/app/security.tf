@@ -76,17 +76,35 @@ resource "aws_security_group" "lb" {
   }
 }
 
+locals {
+  ingress_ports = [8080, 8501]
+}
+
 resource "aws_security_group" "ecs_tasks" {
   name        = "ecs-tasks-sg"
   vpc_id      = aws_vpc.this.id
   description = "Allow inbound access from the ALB only"
 
+  /*
   ingress {
     protocol        = "tcp"
     from_port       = 8080
     to_port         = 8501
     cidr_blocks     = ["0.0.0.0/0"]
     security_groups = [aws_security_group.lb.id]
+  }
+*/
+
+  dynamic "ingress" {
+    for_each = local.ingress_ports
+    content {
+      protocol        = "tcp"
+      description     = "Allow traffic on port ${ingress.value}"
+      from_port       = ingress.value
+      to_port         = ingress.value
+      cidr_blocks     = ["0.0.0.0/0"]
+      security_groups = [aws_security_group.lb.id]
+    }
   }
 
   egress {
