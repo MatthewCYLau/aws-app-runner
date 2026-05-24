@@ -14,8 +14,9 @@ import yfinance as yf
 import pandas as pd
 from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from fastapi import APIRouter, status
+import numpy as np
 
 
 from api.config.exception import BadRequestException, NotFoundException
@@ -29,6 +30,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/api/v1/positions", tags=["positions"])
 
 bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
+daily_volatility = 0.02
 
 
 def get_stock_current_price(stock_symbol: str):
@@ -315,24 +317,38 @@ def batch_update_pnl():
             position_id = pos["PositionId"]
             stock_symbol = pos["StockSymbol"]
             created_at = pos["CreatedAt"]
-            curr_price = Decimal(str(get_stock_current_price(stock_symbol)))
-            open_price = pos["OpenPrice"]
-            quantity = pos["Quantity"]
 
-            total_pnl = round(((curr_price - open_price) * quantity), 2)
+            curr_price = Decimal(str(get_stock_current_price(stock_symbol)))
+            open_price = Decimal(str(pos["OpenPrice"]))
+            quantity = Decimal(str(pos["Quantity"]))
+
+            total_pnl = ((curr_price - open_price) * quantity).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+
+            pnl_shock_percent = Decimal(
+                str(np.random.normal(loc=0.0, scale=daily_volatility))
+            )
+            pnl_shock_percent_rounded = pnl_shock_percent.quantize(
+                Decimal("0.0001"), rounding=ROUND_HALF_UP
+            )
+
+            shocked_pnl = (
+                total_pnl * (Decimal("1") + pnl_shock_percent_rounded)
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
             timestamp = datetime.now(timezone.utc).isoformat()
 
             history = get_historical_pnl(position_id, limit=50)
-
             is_valid, message = validate_new_pnl(
                 history, total_pnl, method="iqr", threshold=3.0
             )
 
-            if is_valid:
-                logger.info("Metrics healthy. Writing to DynamoDB...")
-            else:
+            if not is_valid:
                 logger.warn(f"CRITICAL: Data validation failed! {message}")
-                return
+                continue
+
+            logger.info("Metrics healthy. Writing to DynamoDB...")
 
             batch.put_item(
                 Item={
@@ -340,10 +356,12 @@ def batch_update_pnl():
                     "StockSymbol": stock_symbol,
                     "CreatedAt": created_at,
                     "LastModified": timestamp,
-                    "OpenPrice": Decimal(str(open_price)),
+                    "OpenPrice": open_price,
                     "CurrentPrice": curr_price,
                     "Quantity": quantity,
-                    "TotalPnL": Decimal(str(total_pnl)),
+                    "TotalPnL": total_pnl,
+                    "PnlShockPercent": pnl_shock_percent_rounded,
+                    "ShockedPnL": shocked_pnl,
                 }
             )
 
