@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import boto3
 
+AWS_REGION = "us-east-1"
 st.title("📈 Stock PnL Tracker")
 
 
@@ -12,13 +13,13 @@ def plot_position_daily_pnl(open_price: float, quantity: int, stock_symbol: str)
     df = data.history(period="1mo")
 
     df["Daily PnL"] = (df["Close"] - open_price) * quantity
-    dail_pnl_df = df[["Daily PnL"]]
+    dail_pnl_df = df[["Close", "Daily PnL"]]
 
     st.subheader(f"{stock_symbol} daily PnL")
     st.line_chart(dail_pnl_df)
 
 
-dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
 pnl_table = dynamodb.Table("positions_pnl")
 
 positions = []

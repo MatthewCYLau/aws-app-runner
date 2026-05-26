@@ -3,20 +3,19 @@ import os
 from sqlalchemy import create_engine, engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from api.config.constants import AWS_REGION
 
-
-REGION = "us-east-1"
 DB_HOST = os.environ.get("DB_HOST")
 DB_PORT = 5432
 DB_USER = "iam_user"
 DB_NAME = "apprunnerdb"
 
-rds_client = boto3.client("rds", region_name=REGION)
+rds_client = boto3.client("rds", region_name=AWS_REGION)
 
 
 def get_iam_token():
     return rds_client.generate_db_auth_token(
-        DBHostname=DB_HOST, Port=DB_PORT, DBUsername=DB_USER, Region=REGION
+        DBHostname=DB_HOST, Port=DB_PORT, DBUsername=DB_USER, Region=AWS_REGION
     )
 
 

@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 from botocore.exceptions import ClientError
+from api.config.constants import AWS_REGION
 from api.config.database import Base, engine
 from api.config.logging import get_logger
 from api.product.views import router as product_router
@@ -52,7 +53,7 @@ class PlotRequest(BaseModel):
 
 
 def receive_sqs_messages():
-    sqs_client = boto3.client("sqs", region_name="us-east-1")
+    sqs_client = boto3.client("sqs", region_name=AWS_REGION)
     try:
         response = sqs_client.receive_message(
             QueueUrl=sqs_queue_url, WaitTimeSeconds=20
