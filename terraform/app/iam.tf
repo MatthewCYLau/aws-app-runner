@@ -189,6 +189,7 @@ data "aws_iam_policy_document" "dynamodb_rw_policy" {
     resources = [
       module.stock_positions.dynamodb_table_arn,
       module.positions_pnl_aggregate.dynamodb_table_arn,
+      module.positions_pnl_timeseries.dynamodb_table_arn,
       module.stocks_pnl.dynamodb_table_arn,
     ]
   }
