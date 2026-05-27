@@ -1,4 +1,5 @@
 AWS_REGION = "us-east-1"
 STOCK_TRADING_POSITIONS_TABLE = "stock_trading_positions"
 POSITIONS_PNL_AGGREGATE = "positions_pnl_aggregate"
+POSITIONS_PNL_TIMESERIES = "positions_pnl_timeseries"
 STOCKS_PNL = "stocks_pnl"

@@ -6,6 +6,7 @@ import boto3
 from matplotlib import pyplot as plt
 from api.config.constants import (
     POSITIONS_PNL_AGGREGATE,
+    POSITIONS_PNL_TIMESERIES,
     STOCK_TRADING_POSITIONS_TABLE,
     STOCKS_PNL,
 )
@@ -310,46 +311,47 @@ def batch_update_pnl():
         )
         positions_to_update.extend(response.get("Items", []))
 
-    positions_pnl_aggregate_table = get_dynamodb_table_client(POSITIONS_PNL_AGGREGATE)
+    for pos in positions_to_update:
+        position_id = pos["PositionId"]
+        stock_symbol = pos["StockSymbol"]
+        created_at = pos["CreatedAt"]
 
-    with positions_pnl_aggregate_table.batch_writer() as batch:
-        for pos in positions_to_update:
-            position_id = pos["PositionId"]
-            stock_symbol = pos["StockSymbol"]
-            created_at = pos["CreatedAt"]
+        curr_price = Decimal(str(get_stock_current_price(stock_symbol)))
+        open_price = Decimal(str(pos["OpenPrice"]))
+        quantity = Decimal(str(pos["Quantity"]))
 
-            curr_price = Decimal(str(get_stock_current_price(stock_symbol)))
-            open_price = Decimal(str(pos["OpenPrice"]))
-            quantity = Decimal(str(pos["Quantity"]))
+        total_pnl = ((curr_price - open_price) * quantity).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
 
-            total_pnl = ((curr_price - open_price) * quantity).quantize(
-                Decimal("0.01"), rounding=ROUND_HALF_UP
-            )
+        pnl_shock_percent = Decimal(
+            str(np.random.normal(loc=0.0, scale=daily_volatility))
+        )
+        pnl_shock_percent_rounded = pnl_shock_percent.quantize(
+            Decimal("0.0001"), rounding=ROUND_HALF_UP
+        )
 
-            pnl_shock_percent = Decimal(
-                str(np.random.normal(loc=0.0, scale=daily_volatility))
-            )
-            pnl_shock_percent_rounded = pnl_shock_percent.quantize(
-                Decimal("0.0001"), rounding=ROUND_HALF_UP
-            )
+        shocked_pnl = (total_pnl * (Decimal("1") + pnl_shock_percent_rounded)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
 
-            shocked_pnl = (
-                total_pnl * (Decimal("1") + pnl_shock_percent_rounded)
-            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        timestamp = datetime.now(timezone.utc).isoformat()
 
-            timestamp = datetime.now(timezone.utc).isoformat()
+        history = get_historical_pnl(position_id, limit=50)
+        is_valid, message = validate_new_pnl(
+            history, total_pnl, method="iqr", threshold=3.0
+        )
 
-            history = get_historical_pnl(position_id, limit=50)
-            is_valid, message = validate_new_pnl(
-                history, total_pnl, method="iqr", threshold=3.0
-            )
+        if not is_valid:
+            logger.warn(f"CRITICAL: Data validation failed! {message}")
+            continue
 
-            if not is_valid:
-                logger.warn(f"CRITICAL: Data validation failed! {message}")
-                continue
+        logger.info("Metrics healthy. Writing to DynamoDB...")
 
-            logger.info("Metrics healthy. Writing to DynamoDB...")
-
+        positions_pnl_aggregate_table = get_dynamodb_table_client(
+            POSITIONS_PNL_AGGREGATE
+        )
+        with positions_pnl_aggregate_table.batch_writer() as batch:
             batch.put_item(
                 Item={
                     "PositionId": position_id,
@@ -361,6 +363,22 @@ def batch_update_pnl():
                     "Quantity": quantity,
                     "TotalPnL": total_pnl,
                     "PnlShockPercent": pnl_shock_percent_rounded,
+                    "ShockedPnL": shocked_pnl,
+                }
+            )
+
+        positions_pnl_timeseries_table = get_dynamodb_table_client(
+            POSITIONS_PNL_TIMESERIES
+        )
+        with positions_pnl_timeseries_table.batch_writer() as batch:
+            batch.put_item(
+                Item={
+                    "PositionId": position_id,
+                    "StockSymbol": stock_symbol,
+                    "CreatedAt": datetime.now(timezone.utc).isoformat(),
+                    "OpenPrice": open_price,
+                    "CurrentPrice": curr_price,
+                    "Quantity": quantity,
                     "ShockedPnL": shocked_pnl,
                 }
             )
