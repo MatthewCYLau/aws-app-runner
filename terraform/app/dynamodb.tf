@@ -10,6 +10,19 @@ module "stock_positions" {
   common_tags = local.common_tags
 }
 
+module "positions_pnl_timeseries" {
+  source         = "./modules/dynamodb"
+  table_name     = "positions_pnl_timeseries"
+  hash_key       = "CreatedAt"
+  range_key      = "PositionId"
+  stream_enabled = true
+  attributes = [
+    { name = "PositionId", type = "S" },
+    { name = "CreatedAt", type = "S" }
+  ]
+  common_tags = local.common_tags
+}
+
 module "positions_pnl_aggregate" {
   source         = "./modules/dynamodb"
   table_name     = "positions_pnl_aggregate"
