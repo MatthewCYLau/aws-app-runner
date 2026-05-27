@@ -5,7 +5,7 @@ import uuid
 import boto3
 from matplotlib import pyplot as plt
 from api.config.constants import (
-    POSITIONS_PNL_TABLE,
+    POSITIONS_PNL_AGGREGATE,
     STOCK_TRADING_POSITIONS_TABLE,
     STOCKS_PNL,
 )
@@ -250,8 +250,8 @@ def update_position_by_id(
 
 
 def get_historical_pnl(position_id, limit=30):
-    pnl_table = get_dynamodb_table_client(POSITIONS_PNL_TABLE)
-    response = pnl_table.query(
+    positions_pnl_aggregate_table = get_dynamodb_table_client(POSITIONS_PNL_AGGREGATE)
+    response = positions_pnl_aggregate_table.query(
         KeyConditionExpression=boto3.dynamodb.conditions.Key("PositionId").eq(
             position_id
         ),
@@ -310,9 +310,9 @@ def batch_update_pnl():
         )
         positions_to_update.extend(response.get("Items", []))
 
-    pnl_table = get_dynamodb_table_client(POSITIONS_PNL_TABLE)
+    positions_pnl_aggregate_table = get_dynamodb_table_client(POSITIONS_PNL_AGGREGATE)
 
-    with pnl_table.batch_writer() as batch:
+    with positions_pnl_aggregate_table.batch_writer() as batch:
         for pos in positions_to_update:
             position_id = pos["PositionId"]
             stock_symbol = pos["StockSymbol"]
