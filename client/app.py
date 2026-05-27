@@ -20,7 +20,7 @@ def plot_position_daily_pnl(open_price: float, quantity: int, stock_symbol: str)
 
 
 dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
-pnl_table = dynamodb.Table("positions_pnl")
+pnl_table = dynamodb.Table("positions_pnl_aggregate")
 
 positions = []
 response = pnl_table.scan()
