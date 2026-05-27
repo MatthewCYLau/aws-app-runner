@@ -16,7 +16,7 @@ resource "aws_lambda_function" "pnl_aggregator" {
 }
 
 resource "aws_lambda_event_source_mapping" "trigger" {
-  event_source_arn  = module.positions_pnl.dynamodb_table_stream_arn
+  event_source_arn  = module.positions_pnl_aggregate.dynamodb_table_stream_arn
   function_name     = aws_lambda_function.pnl_aggregator.arn
   starting_position = "LATEST"
   batch_size        = 100
