@@ -10,9 +10,9 @@ module "stock_positions" {
   common_tags = local.common_tags
 }
 
-module "positions_pnl" {
+module "positions_pnl_aggregate" {
   source         = "./modules/dynamodb"
-  table_name     = "positions_pnl"
+  table_name     = "positions_pnl_aggregate"
   hash_key       = "PositionId"
   range_key      = "CreatedAt"
   stream_enabled = true
