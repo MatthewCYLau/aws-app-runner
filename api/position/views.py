@@ -362,7 +362,7 @@ def batch_update_pnl():
                     "CurrentPrice": curr_price,
                     "Quantity": quantity,
                     "TotalPnL": total_pnl,
-                    "PnlShockPercent": pnl_shock_percent_rounded,
+                    "PnlShockPercent": pnl_shock_percent_rounded * 100,
                     "ShockedPnL": shocked_pnl,
                 }
             )
