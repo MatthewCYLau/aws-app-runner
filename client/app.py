@@ -44,10 +44,12 @@ while "LastEvaluatedKey" in response:
     positions.extend(response.get("Items", []))
 
 df = pd.DataFrame(positions)
-df = df.set_index("PositionId")
 
-st.subheader("Aggregate PnL by postion ID")
-st.dataframe(df.tail(10))
+if not df.empty:
+    df = df.set_index("PositionId")
+
+    st.subheader("Aggregate PnL by postion ID")
+    st.dataframe(df.tail(10))
 
 positions_pnl_timeseries_table = dynamodb.Table("positions_pnl_timeseries")
 
@@ -62,10 +64,12 @@ while "LastEvaluatedKey" in response:
     positions_timeseries_data.extend(response.get("Items", []))
 
 positions_timeseries_df = pd.DataFrame(positions_timeseries_data)
-positions_timeseries_df = positions_timeseries_df.set_index("CreatedAt")
-positions_timeseries_df["ShockedPnL"] = pd.to_numeric(
-    positions_timeseries_df["ShockedPnL"]
-)
+
+if not positions_timeseries_df.empty:
+    positions_timeseries_df = positions_timeseries_df.set_index("CreatedAt")
+    positions_timeseries_df["ShockedPnL"] = pd.to_numeric(
+        positions_timeseries_df["ShockedPnL"]
+    )
 
 for stock_position in positions:
     open_price = float(stock_position.get("OpenPrice"))
@@ -87,7 +91,8 @@ while "LastEvaluatedKey" in response:
     items.extend(response.get("Items", []))
 
 df = pd.DataFrame(items)
-df = df.set_index("StockSymbol")
+if not df.empty:
+    df = df.set_index("StockSymbol")
 
-st.subheader("PnL by stock symbol")
-st.dataframe(df.tail(10))
+    st.subheader("PnL by stock symbol")
+    st.dataframe(df.tail(10))
