@@ -90,9 +90,16 @@ while "LastEvaluatedKey" in response:
     response = stocks_pnl_table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
     items.extend(response.get("Items", []))
 
-df = pd.DataFrame(items)
-if not df.empty:
-    df = df.set_index("StockSymbol")
+stocks_pnl_df = pd.DataFrame(items)
+if not stocks_pnl_df.empty:
+    stocks_pnl_df = stocks_pnl_df.rename(
+        columns={
+            "StockSymbol": "Stock symbol",
+            "TotalPnL": "Total PnL",
+            "LastModified": "Last modified",
+        }
+    )
+    stocks_pnl_df = stocks_pnl_df.set_index("Stock symbol")
 
     st.subheader("PnL by stock symbol")
-    st.dataframe(df.tail(10))
+    st.dataframe(stocks_pnl_df.tail(10))
