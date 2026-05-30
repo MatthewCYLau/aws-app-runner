@@ -3,7 +3,8 @@ import streamlit as st
 import pandas as pd
 import boto3
 
-AWS_REGION = "us-east-1"
+from config.constants import AWS_REGION, columns_rename_map
+
 st.title("📈 Stock PnL Tracker")
 
 
@@ -21,10 +22,10 @@ def plot_position_daily_pnl(open_price: float, quantity: int, stock_symbol: str)
 
 def plot_position_pnl_timeseries(df: pd.DataFrame, position_id: str):
 
-    position_df = df.loc[df["PositionId"] == position_id]
+    position_df = df.loc[df["Position Id"] == position_id]
 
     if len(position_df):
-        shocked_pnl_df = position_df[["ShockedPnL"]]
+        shocked_pnl_df = position_df[["Shocked PnL"]]
 
         st.subheader("Shocked PnL")
         st.line_chart(shocked_pnl_df)
@@ -33,23 +34,25 @@ def plot_position_pnl_timeseries(df: pd.DataFrame, position_id: str):
 dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
 positions_pnl_aggregate_table = dynamodb.Table("positions_pnl_aggregate")
 
-positions = []
+positions_pnl_aggregate = []
 response = positions_pnl_aggregate_table.scan()
-positions.extend(response.get("Items", []))
+positions_pnl_aggregate.extend(response.get("Items", []))
 
 while "LastEvaluatedKey" in response:
     response = positions_pnl_aggregate_table.scan(
         ExclusiveStartKey=response["LastEvaluatedKey"]
     )
-    positions.extend(response.get("Items", []))
+    positions_pnl_aggregate.extend(response.get("Items", []))
 
-df = pd.DataFrame(positions)
+positions_pnl_aggregate_df = pd.DataFrame(positions_pnl_aggregate)
 
-if not df.empty:
-    df = df.set_index("PositionId")
-
+if not positions_pnl_aggregate_df.empty:
+    positions_pnl_aggregate_df = positions_pnl_aggregate_df.rename(
+        columns=columns_rename_map
+    )
+    positions_pnl_aggregate_df = positions_pnl_aggregate_df.set_index("Position Id")
     st.subheader("Aggregate PnL by postion ID")
-    st.dataframe(df.tail(10))
+    st.dataframe(positions_pnl_aggregate_df.tail(10))
 
 positions_pnl_timeseries_table = dynamodb.Table("positions_pnl_timeseries")
 
@@ -66,12 +69,13 @@ while "LastEvaluatedKey" in response:
 positions_timeseries_df = pd.DataFrame(positions_timeseries_data)
 
 if not positions_timeseries_df.empty:
-    positions_timeseries_df = positions_timeseries_df.set_index("CreatedAt")
-    positions_timeseries_df["ShockedPnL"] = pd.to_numeric(
-        positions_timeseries_df["ShockedPnL"]
+    positions_timeseries_df = positions_timeseries_df.rename(columns=columns_rename_map)
+    positions_timeseries_df = positions_timeseries_df.set_index("Created at")
+    positions_timeseries_df["Shocked PnL"] = pd.to_numeric(
+        positions_timeseries_df["Shocked PnL"]
     )
 
-for stock_position in positions:
+for stock_position in positions_pnl_aggregate:
     open_price = float(stock_position.get("OpenPrice"))
     quantity = int(stock_position.get("Quantity"))
     stock_symbol = stock_position.get("StockSymbol")
@@ -92,13 +96,7 @@ while "LastEvaluatedKey" in response:
 
 stocks_pnl_df = pd.DataFrame(items)
 if not stocks_pnl_df.empty:
-    stocks_pnl_df = stocks_pnl_df.rename(
-        columns={
-            "StockSymbol": "Stock symbol",
-            "TotalPnL": "Total PnL",
-            "LastModified": "Last modified",
-        }
-    )
+    stocks_pnl_df = stocks_pnl_df.rename(columns=columns_rename_map)
     stocks_pnl_df = stocks_pnl_df.set_index("Stock symbol")
 
     st.subheader("PnL by stock symbol")
