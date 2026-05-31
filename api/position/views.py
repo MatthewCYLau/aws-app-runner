@@ -111,6 +111,17 @@ def plot_stock_positions():
         items.extend(response.get("Items", []))
 
     df = pd.DataFrame(items)
+
+    if df.empty:
+        raise NotFoundException("No positions found.")
+
+    unique_stock_symbol_mask = ~df.duplicated(subset=["StockSymbol"], keep=False)
+    unique_stock_symbol_df = df.loc[unique_stock_symbol_mask]
+
+    logger.info(
+        f"Unique stock symbols: {unique_stock_symbol_df['StockSymbol'].values.tolist()}"
+    )
+
     df["TotalPnL"] = df["TotalPnL"].apply(
         lambda x: float(x) if isinstance(x, Decimal) else x
     )
