@@ -342,9 +342,22 @@ def batch_update_pnl():
             Decimal("0.0001"), rounding=ROUND_HALF_UP
         )
 
-        shocked_pnl = (total_pnl * (Decimal("1") + pnl_shock_percent_rounded)).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
+        pnl_shock_percent_normal = Decimal(
+            str(np.random.uniform(-daily_volatility, daily_volatility))
         )
+        pnl_shock_percent_normal_rounded = pnl_shock_percent_normal.quantize(
+            Decimal("0.0001"), rounding=ROUND_HALF_UP
+        )
+
+        logger.info(
+            f"Shock percent values: {(pnl_shock_percent_rounded, pnl_shock_percent_normal_rounded)}"
+        )
+
+        shocked_pnl = (
+            total_pnl
+            * (Decimal("1") + pnl_shock_percent_rounded)
+            * (Decimal("1") + pnl_shock_percent_normal_rounded)
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         timestamp = datetime.now(timezone.utc).isoformat()
 
