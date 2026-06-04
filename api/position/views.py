@@ -24,6 +24,7 @@ from api.config.exception import BadRequestException, NotFoundException
 from api.config.logging import get_logger
 from api.position.schemas import PositiontBase, UpdatePositiontRequest
 from api.utils.dynamodb_util import get_dynamodb_table_client
+from api.utils.stock_util import fetch_live_snapshots
 
 logger = get_logger(__name__)
 
@@ -327,7 +328,9 @@ def batch_update_pnl():
         stock_symbol = pos["StockSymbol"]
         created_at = pos["CreatedAt"]
 
-        curr_price = Decimal(str(get_stock_current_price(stock_symbol)))
+        curr_price = Decimal(str(fetch_live_snapshots(stock_symbol).loc[stock_symbol]['Current_Price'])).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
         open_price = Decimal(str(pos["OpenPrice"]))
         quantity = Decimal(str(pos["Quantity"]))
 
