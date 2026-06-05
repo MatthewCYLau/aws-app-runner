@@ -75,6 +75,11 @@ if not positions_timeseries_df.empty:
         positions_timeseries_df["Shocked PnL"]
     )
 
+    mean_shocked_pnl = positions_timeseries_df.groupby(['Stock symbol'])['Shocked PnL'].mean()
+    st.subheader("Mean shocked PnL by stock symbol")
+    st.dataframe(mean_shocked_pnl.tail(10))
+
+
 for stock_position in positions_pnl_aggregate:
     open_price = float(stock_position.get("OpenPrice"))
     quantity = int(stock_position.get("Quantity"))
