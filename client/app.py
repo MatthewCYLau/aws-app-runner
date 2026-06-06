@@ -75,8 +75,8 @@ if not positions_timeseries_df.empty:
         positions_timeseries_df["Shocked PnL"]
     )
 
-    mean_shocked_pnl = positions_timeseries_df.groupby(['Stock symbol'])['Shocked PnL'].mean()
-    st.subheader("Mean shocked PnL by stock symbol")
+    mean_shocked_pnl = positions_timeseries_df.groupby(['Stock symbol'])['Shocked PnL'].agg(['mean', 'max', 'min'])
+    st.subheader("Mean, max, and min shocked PnL by stock symbol")
     st.dataframe(mean_shocked_pnl.tail(10))
 
 
