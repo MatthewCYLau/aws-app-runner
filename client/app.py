@@ -7,6 +7,8 @@ from config.constants import AWS_REGION, columns_rename_map
 
 st.title("📈 Stock PnL Tracker")
 
+stock_sectors = pd.Series(["Tech", "Finance"], index=["AAPL", "JPM"])
+
 
 def plot_position_daily_pnl(open_price: float, quantity: int, stock_symbol: str):
 
@@ -46,10 +48,19 @@ while "LastEvaluatedKey" in response:
 
 positions_pnl_aggregate_df = pd.DataFrame(positions_pnl_aggregate)
 
+
 if not positions_pnl_aggregate_df.empty:
     positions_pnl_aggregate_df = positions_pnl_aggregate_df.rename(
         columns=columns_rename_map
     )
+
+    positions_pnl_aggregate_df["Sector"] = positions_pnl_aggregate_df[
+        "Stock symbol"
+    ].map(stock_sectors)
+    positions_pnl_aggregate_df["Sector"] = positions_pnl_aggregate_df["Sector"].fillna(
+        "Unknown"
+    )
+
     positions_pnl_aggregate_df = positions_pnl_aggregate_df.set_index("Position Id")
     st.subheader("Aggregate PnL by postion ID")
     st.dataframe(positions_pnl_aggregate_df.tail(10))
@@ -75,7 +86,9 @@ if not positions_timeseries_df.empty:
         positions_timeseries_df["Shocked PnL"]
     )
 
-    mean_shocked_pnl = positions_timeseries_df.groupby(['Stock symbol'])['Shocked PnL'].agg(['mean', 'max', 'min'])
+    mean_shocked_pnl = positions_timeseries_df.groupby(["Stock symbol"])[
+        "Shocked PnL"
+    ].agg(["mean", "max", "min"])
     st.subheader("Mean, max, and min shocked PnL by stock symbol")
     st.dataframe(mean_shocked_pnl.tail(10))
 

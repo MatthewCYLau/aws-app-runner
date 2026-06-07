@@ -328,9 +328,9 @@ def batch_update_pnl():
         stock_symbol = pos["StockSymbol"]
         created_at = pos["CreatedAt"]
 
-        curr_price = Decimal(str(fetch_live_snapshots(stock_symbol).loc[stock_symbol]['Current_Price'])).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
+        curr_price = Decimal(
+            str(fetch_live_snapshots(stock_symbol).loc[stock_symbol]["Current_Price"])
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         open_price = Decimal(str(pos["OpenPrice"]))
         quantity = Decimal(str(pos["Quantity"]))
 
