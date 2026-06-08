@@ -2,11 +2,15 @@ import yfinance as yf
 import streamlit as st
 import pandas as pd
 import boto3
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from config.constants import AWS_REGION, columns_rename_map
 
+st.set_page_config(page_title="Stock Analytics", layout="wide")
 st.title("📈 Stock PnL Tracker")
-
+st.sidebar.header("User Input")
+ticker_input = st.sidebar.text_input("Ticker Symbol", value="AAPL").upper()
 stock_sectors = pd.Series(["Tech", "Finance"], index=["AAPL", "JPM"])
 
 
@@ -20,6 +24,42 @@ def plot_position_daily_pnl(open_price: float, quantity: int, stock_symbol: str)
 
     st.subheader(f"{stock_symbol} daily PnL")
     st.line_chart(dail_pnl_df)
+
+    df["Daily Change %"] = df["Close"].pct_change() * 100
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=df["Close"],
+            name="Close Price",
+            line=dict(color="#1f77b4", width=2),
+        ),
+        secondary_y=False,
+    )
+
+    fig.add_trace(
+        go.Bar(
+            x=df.index,
+            y=df["Daily Change %"],
+            name="Daily Change %",
+            marker=dict(color="#ff7f0e"),
+            opacity=0.4,
+        ),
+        secondary_y=True,
+    )
+
+    fig.update_layout(
+        title=f"{stock_symbol} Performance Summary",
+        hovermode="x unified",  # Shows both values simultaneously on hover
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=20, r=20, t=60, b=20),
+        height=600,
+    )
+
+    fig.update_yaxes(title_text="Stock Price ($)", secondary_y=False)
+    fig.update_yaxes(title_text="Daily Change (%)", secondary_y=True)
+
+    st.plotly_chart(fig, width="stretch")
 
 
 def plot_position_pnl_timeseries(df: pd.DataFrame, position_id: str):
