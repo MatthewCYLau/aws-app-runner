@@ -152,7 +152,7 @@ if position_input:
     open_price = positions_data[position_input]["open_price"]
     quantity = positions_data[position_input]["quantity"]
     stock_symbol = positions_data[position_input]["stock_symbol"]
-    plot_position_daily_pnl(postion_id, open_price, quantity, stock_symbol)
+    plot_position_daily_pnl(position_input, open_price, quantity, stock_symbol)
     plot_position_pnl_timeseries(
         positions_timeseries_df, str(stock_position.get("PositionId"))
     )
