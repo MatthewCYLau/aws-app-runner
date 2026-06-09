@@ -10,11 +10,13 @@ from config.constants import AWS_REGION, columns_rename_map
 st.set_page_config(page_title="Stock Analytics", layout="wide")
 st.title("📈 Stock PnL Tracker")
 st.sidebar.header("User Input")
-ticker_input = st.sidebar.text_input("Ticker Symbol", value="AAPL").upper()
 stock_sectors = pd.Series(["Tech", "Finance"], index=["AAPL", "JPM"])
+positions_data = {}
 
 
-def plot_position_daily_pnl(open_price: float, quantity: int, stock_symbol: str):
+def plot_position_daily_pnl(
+    position_id: str, open_price: float, quantity: int, stock_symbol: str
+):
 
     data = yf.Ticker(stock_symbol)
     df = data.history(period="1mo")
@@ -22,7 +24,7 @@ def plot_position_daily_pnl(open_price: float, quantity: int, stock_symbol: str)
     df["Daily PnL"] = (df["Close"] - open_price) * quantity
     dail_pnl_df = df[["Close", "Daily PnL"]]
 
-    st.subheader(f"{stock_symbol} daily PnL")
+    st.subheader(f"{position_id} {stock_symbol} daily PnL")
     st.line_chart(dail_pnl_df)
 
     df["Daily Change %"] = df["Close"].pct_change() * 100
@@ -69,7 +71,7 @@ def plot_position_pnl_timeseries(df: pd.DataFrame, position_id: str):
     if len(position_df):
         shocked_pnl_df = position_df[["Shocked PnL"]]
 
-        st.subheader("Shocked PnL")
+        st.subheader(f"{position_id} Shocked PnL")
         st.line_chart(shocked_pnl_df)
 
 
@@ -134,10 +136,23 @@ if not positions_timeseries_df.empty:
 
 
 for stock_position in positions_pnl_aggregate:
+    postion_id = stock_position.get("PositionId")
     open_price = float(stock_position.get("OpenPrice"))
     quantity = int(stock_position.get("Quantity"))
     stock_symbol = stock_position.get("StockSymbol")
-    plot_position_daily_pnl(open_price, quantity, stock_symbol)
+    positions_data[postion_id] = {
+        "open_price": open_price,
+        "quantity": quantity,
+        "stock_symbol": stock_symbol,
+    }
+
+position_input = st.sidebar.selectbox("Position ID", positions_data.keys(), index=0)
+
+if position_input:
+    open_price = positions_data[position_input]["open_price"]
+    quantity = positions_data[position_input]["quantity"]
+    stock_symbol = positions_data[position_input]["stock_symbol"]
+    plot_position_daily_pnl(postion_id, open_price, quantity, stock_symbol)
     plot_position_pnl_timeseries(
         positions_timeseries_df, str(stock_position.get("PositionId"))
     )
