@@ -15,11 +15,15 @@ positions_data = {}
 
 
 def plot_position_daily_pnl(
-    position_id: str, open_price: float, quantity: int, stock_symbol: str
+    position_id: str,
+    open_price: float,
+    quantity: int,
+    stock_symbol: str,
+    period_input: str = "1mo",
 ):
 
     data = yf.Ticker(stock_symbol)
-    df = data.history(period="1mo")
+    df = data.history(period=period_input)
 
     df["Daily PnL"] = (df["Close"] - open_price) * quantity
     dail_pnl_df = df[["Close", "Daily PnL"]]
@@ -52,7 +56,7 @@ def plot_position_daily_pnl(
 
     fig.update_layout(
         title=f"{stock_symbol} Performance Summary",
-        hovermode="x unified",  # Shows both values simultaneously on hover
+        hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         margin=dict(l=20, r=20, t=60, b=20),
         height=600,
@@ -130,32 +134,9 @@ if not positions_timeseries_df.empty:
 
     mean_shocked_pnl = positions_timeseries_df.groupby(["Stock symbol"])[
         "Shocked PnL"
-    ].agg(["mean", "max", "min"])
-    st.subheader("Mean, max, and min shocked PnL by stock symbol")
+    ].agg(["mean", "max", "min", "sum"])
+    st.subheader("Mean, max, min, and sum shocked PnL by stock symbol")
     st.dataframe(mean_shocked_pnl.tail(10))
-
-
-for stock_position in positions_pnl_aggregate:
-    postion_id = stock_position.get("PositionId")
-    open_price = float(stock_position.get("OpenPrice"))
-    quantity = int(stock_position.get("Quantity"))
-    stock_symbol = stock_position.get("StockSymbol")
-    positions_data[postion_id] = {
-        "open_price": open_price,
-        "quantity": quantity,
-        "stock_symbol": stock_symbol,
-    }
-
-position_input = st.sidebar.selectbox("Position ID", positions_data.keys(), index=0)
-
-if position_input:
-    open_price = positions_data[position_input]["open_price"]
-    quantity = positions_data[position_input]["quantity"]
-    stock_symbol = positions_data[position_input]["stock_symbol"]
-    plot_position_daily_pnl(position_input, open_price, quantity, stock_symbol)
-    plot_position_pnl_timeseries(
-        positions_timeseries_df, str(stock_position.get("PositionId"))
-    )
 
 stocks_pnl_table = dynamodb.Table("stocks_pnl")
 
@@ -174,3 +155,31 @@ if not stocks_pnl_df.empty:
 
     st.subheader("PnL by stock symbol")
     st.dataframe(stocks_pnl_df.tail(10))
+
+
+for stock_position in positions_pnl_aggregate:
+    postion_id = stock_position.get("PositionId")
+    open_price = float(stock_position.get("OpenPrice"))
+    quantity = int(stock_position.get("Quantity"))
+    stock_symbol = stock_position.get("StockSymbol")
+    positions_data[postion_id] = {
+        "open_price": open_price,
+        "quantity": quantity,
+        "stock_symbol": stock_symbol,
+    }
+
+position_input = st.sidebar.selectbox("Position ID", positions_data.keys(), index=0)
+period_input = st.sidebar.selectbox(
+    "Time Period", ["1mo", "3mo", "6mo", "1y", "2y"], index=3
+)
+
+if position_input and period_input:
+    open_price = positions_data[position_input]["open_price"]
+    quantity = positions_data[position_input]["quantity"]
+    stock_symbol = positions_data[position_input]["stock_symbol"]
+    plot_position_daily_pnl(
+        position_input, open_price, quantity, stock_symbol, period_input
+    )
+    plot_position_pnl_timeseries(
+        positions_timeseries_df, str(stock_position.get("PositionId"))
+    )
