@@ -134,8 +134,8 @@ if not positions_timeseries_df.empty:
 
     mean_shocked_pnl = positions_timeseries_df.groupby(["Stock symbol"])[
         "Shocked PnL"
-    ].agg(["mean", "max", "min", "sum"])
-    st.subheader("Mean, max, min, and sum shocked PnL by stock symbol")
+    ].agg(["mean", "max", "min"])
+    st.subheader("Mean, max, and min shocked PnL by stock symbol")
     st.dataframe(mean_shocked_pnl.tail(10))
 
 stocks_pnl_table = dynamodb.Table("stocks_pnl")
@@ -152,7 +152,7 @@ stocks_pnl_df = pd.DataFrame(items)
 if not stocks_pnl_df.empty:
     stocks_pnl_df = stocks_pnl_df.rename(columns=columns_rename_map)
     stocks_pnl_df = stocks_pnl_df.set_index("Stock symbol")
-
+    stocks_pnl_df.sort_index(ascending=True, inplace=True)
     st.subheader("PnL by stock symbol")
     st.dataframe(stocks_pnl_df.tail(10))
 
