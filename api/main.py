@@ -13,6 +13,7 @@ import os
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from botocore.exceptions import ClientError
 from api.config.constants import AWS_REGION
 from api.config.database import Base, engine
