@@ -1,8 +1,9 @@
 import io
 import os
 import uuid
-
+import asyncio
 import boto3
+import statistics
 from matplotlib import pyplot as plt
 from api.config.constants import (
     POSITIONS_PNL_AGGREGATE,
@@ -310,7 +311,15 @@ def validate_new_pnl(historical_items, new_pnl, method="z_score", threshold=3.0)
     return True, "Valid"
 
 
-def batch_update_pnl():
+async def get_shock_percent_normal():
+    await asyncio.sleep(1)
+    pnl_shock_percent_normal = Decimal(
+        str(np.random.uniform(-daily_volatility, daily_volatility))
+    )
+    return pnl_shock_percent_normal
+
+
+async def batch_update_pnl():
 
     positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)
     response = positions_table.scan(FilterExpression=Attr("Open").eq(True))
@@ -345,12 +354,15 @@ def batch_update_pnl():
             Decimal("0.0001"), rounding=ROUND_HALF_UP
         )
 
-        pnl_shock_percent_normal = Decimal(
-            str(np.random.uniform(-daily_volatility, daily_volatility))
-        )
-        pnl_shock_percent_normal_rounded = pnl_shock_percent_normal.quantize(
-            Decimal("0.0001"), rounding=ROUND_HALF_UP
-        )
+        tasks = [
+            get_shock_percent_normal()
+            for _ in range(np.random.randint(1, 10, size=1)[0])
+        ]
+        pnl_shock_percent_normal_values = await asyncio.gather(*tasks)
+
+        pnl_shock_percent_normal_rounded = statistics.mean(
+            pnl_shock_percent_normal_values
+        ).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 
         logger.info(
             f"Shock percent values: {(pnl_shock_percent_rounded, pnl_shock_percent_normal_rounded)}"

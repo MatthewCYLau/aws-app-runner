@@ -76,7 +76,7 @@ def receive_sqs_messages():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    scheduler = BackgroundScheduler()
+    scheduler = AsyncIOScheduler()
     scheduler.add_job(receive_sqs_messages, "interval", minutes=1)
     scheduler.add_job(batch_update_pnl, "interval", minutes=1)
     scheduler.start()
