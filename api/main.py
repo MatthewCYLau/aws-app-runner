@@ -18,9 +18,10 @@ from botocore.exceptions import ClientError
 from api.config.constants import AWS_REGION
 from api.config.database import Base, engine
 from api.config.logging import get_logger
+from api.config.metrics import AWS_TRANSACTION_COUNTER, TX_LATENCY
 from api.product.views import router as product_router
 from api.position.views import batch_update_pnl, router as position_router
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 logger = get_logger(__name__)
 
@@ -32,20 +33,6 @@ bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
 sqs_queue_url = os.environ.get(
     "SQS_QUEUE_URL",
     "https://sqs.us-east-1.amazonaws.com/830663695860/aws-app-task-queue",
-)
-
-
-AWS_TRANSACTION_COUNTER = Counter(
-    "aws_transactions_total",
-    "Total number of aws transactions",
-    ["status", "type"],
-)
-
-
-TX_LATENCY = Histogram(
-    "tx_duration_seconds",
-    "Time spent processing transaction",
-    buckets=(0.1, 0.5, 1.0, 2.5, 5.0, 10.0),
 )
 
 

@@ -11,6 +11,7 @@ from api.config.constants import (
     STOCK_TRADING_POSITIONS_TABLE,
     STOCKS_PNL,
 )
+from api.config.metrics import OPEN_POSITIONS_GAUGE
 from api.utils.date_util import validate_date_string
 import yfinance as yf
 import pandas as pd
@@ -95,6 +96,7 @@ def insert_stock_position(position_data: PositiontBase):
         logger.info(
             f"Successfully inserted {position_data.stock_symbol} at {timestamp}"
         )
+        OPEN_POSITIONS_GAUGE.inc()
         return response
     except Exception as e:
         logger.error(f"Error inserting record: {e}")
