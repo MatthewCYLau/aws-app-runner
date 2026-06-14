@@ -4,6 +4,8 @@ import uuid
 import asyncio
 import boto3
 import statistics
+import random
+from httpx import AsyncClient
 from matplotlib import pyplot as plt
 from api.config.constants import (
     POSITIONS_PNL_AGGREGATE,
@@ -321,6 +323,14 @@ async def get_shock_percent_normal():
     return pnl_shock_percent_normal
 
 
+async def get_random_number(async_client: AsyncClient):
+    res = await async_client.get("https://jsonplaceholder.typicode.com/posts")
+    res.raise_for_status()
+    res_data = res.json()
+    random_id = random.choice(res_data)["id"]
+    return random_id
+
+
 async def batch_update_pnl():
 
     positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)
@@ -355,6 +365,13 @@ async def batch_update_pnl():
         pnl_shock_percent_rounded = pnl_shock_percent.quantize(
             Decimal("0.0001"), rounding=ROUND_HALF_UP
         )
+
+        async with AsyncClient() as client:
+            tasks = [get_random_number(client) for _ in range(2)]
+            res = await asyncio.gather(*tasks)
+
+        random_number = statistics.mean(res)
+        logger.info(f"Random number from async client: {random_number}")
 
         tasks = [
             get_shock_percent_normal()

@@ -12,3 +12,4 @@ matplotlib
 pydantic
 prometheus-client
 yfinance
+httpx
