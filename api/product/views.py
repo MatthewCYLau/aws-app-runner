@@ -2,7 +2,7 @@ import uuid
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from api.config.database import get_session
+from api.config.database import get_session, get_read_only_session
 from api.config.logging import get_logger
 from api.product.repository import ProductRepository
 from api.product.schemas import ProductBase, ProductResponse
@@ -15,6 +15,13 @@ router = APIRouter(prefix="/api/v1/products", tags=["products"])
 
 
 def get_product_service(session: Session = Depends(get_session)) -> ProductService:
+    repository = ProductRepository(session)
+    return ProductService(repository)
+
+
+def get_read_onlyproduct_service(
+    session: Session = Depends(get_read_only_session),
+) -> ProductService:
     repository = ProductRepository(session)
     return ProductService(repository)
 
@@ -35,7 +42,7 @@ def create_product(
 
 @router.get("/", response_model=list[ProductResponse])
 def get_all_products(
-    service: ProductService = Depends(get_product_service),
+    service: ProductService = Depends(get_read_onlyproduct_service),
     limit: int = None,
     pageSize: int = 5,
     currentPage: int = 1,
