@@ -25,6 +25,10 @@
         "value": "${db_host}"
       },
       {
+        "name": "DB_HOST_READ_ONLY",
+        "value": "${db_host_read_only}"
+      },
+      {
         "name": "S3_BUCKET_NAME",
         "value": "${s3_bucket_name}"
       },

@@ -40,7 +40,7 @@ resource "aws_subnet" "private" {
 
 resource "aws_subnet" "rds" {
   count             = 2
-  cidr_block        = cidrsubnet(aws_vpc.this.cidr_block, 8, 4 + count.index)
+  cidr_block        = cidrsubnet(aws_vpc.this.cidr_block, 8, count.index + 4)
   availability_zone = data.aws_availability_zones.available_zones.names[count.index]
   vpc_id            = aws_vpc.this.id
 
@@ -49,10 +49,9 @@ resource "aws_subnet" "rds" {
   }
 }
 
-/*
 resource "aws_subnet" "rds_public" {
   count             = 2
-  cidr_block        = cidrsubnet(aws_vpc.this.cidr_block, 8, 6 + count.index)
+  cidr_block        = cidrsubnet(aws_vpc.this.cidr_block, 8, count.index + 6)
   availability_zone = data.aws_availability_zones.available_zones.names[count.index]
   vpc_id            = aws_vpc.this.id
 
@@ -60,7 +59,6 @@ resource "aws_subnet" "rds_public" {
     Name = "AWS ECS App RDS read replica public subnet ${count.index + 1}"
   }
 }
-*/
 
 resource "aws_internet_gateway" "gateway" {
   vpc_id = aws_vpc.this.id
@@ -91,6 +89,12 @@ resource "aws_route_table" "public" {
 resource "aws_route_table_association" "public" {
   count          = 2
   subnet_id      = element(aws_subnet.public.*.id, count.index)
+  route_table_id = element(aws_route_table.public.*.id, count.index)
+}
+
+resource "aws_route_table_association" "rds_public" {
+  count          = 2
+  subnet_id      = element(aws_subnet.rds_public.*.id, count.index)
   route_table_id = element(aws_route_table.public.*.id, count.index)
 }
 

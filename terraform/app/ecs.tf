@@ -20,6 +20,7 @@ resource "aws_ecs_task_definition" "service" {
     container_name                = "aws-app"
     aws_cloudwatch_log_group_name = aws_cloudwatch_log_group.this.name
     db_host                       = aws_db_instance.postgres.address
+    db_host_read_only             = aws_db_instance.read_replica.address
     s3_bucket_name                = aws_s3_bucket.assets.bucket
     sqs_queue_url                 = aws_sqs_queue.app_queue.url
   })
