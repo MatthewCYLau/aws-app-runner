@@ -77,7 +77,7 @@ resource "aws_db_instance" "read_replica" {
   instance_class      = "db.t3.micro"
 
   db_subnet_group_name   = aws_db_subnet_group.public_read_replica.name
-  vpc_security_group_ids = [aws_security_group.replica_sg.id]
+  vpc_security_group_ids = [aws_security_group.replica_sg.id, aws_security_group.replica_sg_allow_ecs.id]
   publicly_accessible    = true
   skip_final_snapshot    = true
 
