@@ -57,7 +57,8 @@ data "aws_iam_policy_document" "rds_iam_auth" {
     actions = ["rds-db:connect"]
     effect  = "Allow"
     resources = [
-      "arn:aws:rds-db:us-east-1:${data.aws_caller_identity.current.account_id}:dbuser:${aws_db_instance.postgres.resource_id}/iam_user"
+      "arn:aws:rds-db:us-east-1:${data.aws_caller_identity.current.account_id}:dbuser:${aws_db_instance.postgres.resource_id}/iam_user",
+      "arn:aws:rds-db:us-east-1:${data.aws_caller_identity.current.account_id}:dbuser:${aws_db_instance.read_replica.resource_id}/iam_user"
     ]
   }
 }
