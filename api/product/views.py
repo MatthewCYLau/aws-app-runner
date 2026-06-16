@@ -1,8 +1,10 @@
 import uuid
+import pandas as pd
+from sqlalchemy import text
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from api.config.database import get_session, get_read_only_session
+from api.config.database import get_session, get_read_only_session, read_only_engine
 from api.config.logging import get_logger
 from api.product.repository import ProductRepository
 from api.product.schemas import ProductBase, ProductResponse
@@ -55,6 +57,30 @@ def get_all_products(
         return products
     except Exception as e:
         logger.error(f"Failed to fetch products: {str(e)}")
+        raise
+
+
+@router.get("/dataframe")
+def get_all_products_dataframe():
+    """Get all products dataframe."""
+    logger.debug("Fetching all products dataframe")
+
+    all_df = []
+    try:
+        query = text("SELECT * FROM products")
+
+        chunk_iterator = pd.read_sql_query(
+            sql=query, con=read_only_engine, chunksize=10
+        )
+        for chunk_df in chunk_iterator:
+            logger.info(chunk_df)
+            all_df.append(chunk_df)
+
+        concat_df = pd.concat(all_df)
+        return concat_df.to_dict(orient="records")
+
+    except Exception as e:
+        logger.error(f"Failed to fetch products dataframe: {str(e)}")
         raise
 
 
