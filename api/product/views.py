@@ -1,11 +1,15 @@
 import uuid
 import pandas as pd
+import boto3
+from io import StringIO
+from datetime import datetime
 from sqlalchemy import text
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from api.config.database import get_session, get_read_only_session, read_only_engine
 from api.config.logging import get_logger
+from api.config.constants import S3_BUCKET_NAME
 from api.product.repository import ProductRepository
 from api.product.schemas import ProductBase, ProductResponse
 from api.product.service import ProductService
@@ -61,7 +65,7 @@ def get_all_products(
 
 
 @router.get("/dataframe")
-def get_all_products_dataframe():
+def get_all_products_dataframe(upload_to_s3: bool = False):
     """Get all products dataframe."""
     logger.debug("Fetching all products dataframe")
 
@@ -73,10 +77,20 @@ def get_all_products_dataframe():
             sql=query, con=read_only_engine, chunksize=10
         )
         for chunk_df in chunk_iterator:
-            logger.info(chunk_df)
             all_df.append(chunk_df)
 
         concat_df = pd.concat(all_df)
+
+        if upload_to_s3:
+            s3_client = boto3.client("s3")
+            csv_buffer = StringIO()
+            concat_df.to_csv(csv_buffer, index=False)
+            object_key = f"{datetime.now().timestamp()}_products_df.csv"
+            s3_client.put_object(
+                Bucket=S3_BUCKET_NAME, Key=object_key, Body=csv_buffer.getvalue()
+            )
+            logger.info(f"Successfully uploaded to {object_key}")
+
         return concat_df.to_dict(orient="records")
 
     except Exception as e:

@@ -6,7 +6,10 @@ from sqlalchemy.orm import sessionmaker
 from api.config.constants import AWS_REGION
 
 DB_HOST = os.environ.get("DB_HOST")
-DB_HOST_READ_ONLY = os.environ.get("DB_HOST_READ_ONLY")
+DB_HOST_READ_ONLY = os.environ.get(
+    "DB_HOST_READ_ONLY",
+    "postgres-read-replica.c3bji2qrl6dz.us-east-1.rds.amazonaws.com",
+)
 DB_PORT = 5432
 DB_USER = "iam_user"
 DB_NAME = "apprunnerdb"

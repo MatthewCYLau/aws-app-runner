@@ -9,13 +9,12 @@ import boto3
 import matplotlib
 import matplotlib.pyplot as plt
 
-import os
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from botocore.exceptions import ClientError
-from api.config.constants import AWS_REGION
+from api.config.constants import AWS_REGION, SQS_QUEUE_URL, S3_BUCKET_NAME
 from api.config.database import Base, engine
 from api.config.logging import get_logger
 from api.config.metrics import AWS_TRANSACTION_COUNTER, TX_LATENCY
@@ -29,12 +28,6 @@ matplotlib.use("agg")
 
 Base.metadata.create_all(bind=engine)
 
-bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
-sqs_queue_url = os.environ.get(
-    "SQS_QUEUE_URL",
-    "https://sqs.us-east-1.amazonaws.com/830663695860/aws-app-task-queue",
-)
-
 
 class PlotRequest(BaseModel):
     file_key: str
@@ -44,7 +37,7 @@ def receive_sqs_messages():
     sqs_client = boto3.client("sqs", region_name=AWS_REGION)
     try:
         response = sqs_client.receive_message(
-            QueueUrl=sqs_queue_url, WaitTimeSeconds=20
+            QueueUrl=SQS_QUEUE_URL, WaitTimeSeconds=20
         )
 
         messages = response.get("Messages", [])
@@ -53,7 +46,7 @@ def receive_sqs_messages():
                 body = json.loads(msg["Body"])
                 logger.info(body)
                 sqs_client.delete_message(
-                    QueueUrl=sqs_queue_url, ReceiptHandle=msg["ReceiptHandle"]
+                    QueueUrl=SQS_QUEUE_URL, ReceiptHandle=msg["ReceiptHandle"]
                 )
                 logger.info("Task completed and deleted.")
             except Exception as e:
@@ -102,7 +95,7 @@ def stream_text_to_s3(text_content, object_key):
     try:
         s3_client.put_object(
             Body=text_content,
-            Bucket=bucket_name,
+            Bucket=S3_BUCKET_NAME,
             Key=object_key,
             ContentType="text/plain",
         )
@@ -128,7 +121,9 @@ def upload_dataframe_s3():
     csv_buffer = StringIO()
     df.to_csv(csv_buffer, index=False)
     object_key = f"{get_random_int()}_dataframe.csv"
-    s3_client.put_object(Bucket=bucket_name, Key=object_key, Body=csv_buffer.getvalue())
+    s3_client.put_object(
+        Bucket=S3_BUCKET_NAME, Key=object_key, Body=csv_buffer.getvalue()
+    )
     logger.info(f"Successfully uploaded to {object_key}")
     return {"file_key": object_key}
 
@@ -137,10 +132,10 @@ def upload_dataframe_s3():
 def get_s3_presigned_url(file_key: str):
     s3_client = boto3.client("s3")
     try:
-        s3_client.head_object(Bucket=bucket_name, Key=file_key)
+        s3_client.head_object(Bucket=S3_BUCKET_NAME, Key=file_key)
         logger.info(f"Object with key {file_key} found!")
 
-        s3_path = f"s3://{bucket_name}/{file_key}"
+        s3_path = f"s3://{S3_BUCKET_NAME}/{file_key}"
         df = pd.read_csv(s3_path)
 
         logger.info(f"{'-' * 10}First ten values{'-' * 10}")
@@ -149,7 +144,7 @@ def get_s3_presigned_url(file_key: str):
 
         url = s3_client.generate_presigned_url(
             "get_object",
-            Params={"Bucket": bucket_name, "Key": file_key},
+            Params={"Bucket": S3_BUCKET_NAME, "Key": file_key},
             ExpiresIn=86400,
         )
         return {"file_key": file_key, "presigned_url": url}
@@ -164,10 +159,10 @@ def plot_df_upload_s3(request_data: PlotRequest):
     file_key = request_data.file_key
 
     s3_client = boto3.client("s3")
-    s3_client.head_object(Bucket=bucket_name, Key=file_key)
+    s3_client.head_object(Bucket=S3_BUCKET_NAME, Key=file_key)
     logger.info(f"Object with key {file_key} found!")
 
-    s3_path = f"s3://{bucket_name}/{file_key}"
+    s3_path = f"s3://{S3_BUCKET_NAME}/{file_key}"
     df = pd.read_csv(s3_path)
 
     plot = df.plot(title="Series values")
@@ -182,12 +177,15 @@ def plot_df_upload_s3(request_data: PlotRequest):
 
     try:
         s3.put_object(
-            Bucket=bucket_name, Key=file_key, Body=img_buffer, ContentType="image/png"
+            Bucket=S3_BUCKET_NAME,
+            Key=file_key,
+            Body=img_buffer,
+            ContentType="image/png",
         )
-        logger.info(f"Successfully uploaded to s3://{bucket_name}/{image_file_key}")
+        logger.info(f"Successfully uploaded to s3://{S3_BUCKET_NAME}/{image_file_key}")
         url = s3_client.generate_presigned_url(
             "get_object",
-            Params={"Bucket": bucket_name, "Key": image_file_key},
+            Params={"Bucket": S3_BUCKET_NAME, "Key": image_file_key},
             ExpiresIn=86400,
         )
         return {"file_key": image_file_key, "presigned_url": url}
@@ -203,7 +201,7 @@ def publish_sqs():
     sqs_client = boto3.client("sqs", region_name="us-east-1")
     try:
         response = sqs_client.send_message(
-            QueueUrl=sqs_queue_url,
+            QueueUrl=SQS_QUEUE_URL,
             MessageBody=json.dumps({"counter": int(get_random_int())}),
         )
         AWS_TRANSACTION_COUNTER.labels(status="in_progress", type="sqs").inc()
