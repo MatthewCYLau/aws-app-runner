@@ -25,17 +25,18 @@ import numpy as np
 
 
 from api.config.exception import BadRequestException, NotFoundException
+from api.config.constants import S3_BUCKET_NAME
 from api.config.logging import get_logger
 from api.position.schemas import PositiontBase, UpdatePositiontRequest
 from api.utils.dynamodb_util import get_dynamodb_table_client
 from api.utils.stock_util import fetch_live_snapshots
+from api.utils.utils import custom_get_random_int
 
 logger = get_logger(__name__)
 
 
 router = APIRouter(prefix="/api/v1/positions", tags=["positions"])
 
-bucket_name = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
 daily_volatility = 0.02
 
 
@@ -157,15 +158,15 @@ def plot_stock_positions():
 
     try:
         s3_client.put_object(
-            Bucket=bucket_name,
+            Bucket=S3_BUCKET_NAME,
             Key=image_file_key,
             Body=img_buffer,
             ContentType="image/png",
         )
-        logger.info(f"Successfully uploaded to s3://{bucket_name}/{image_file_key}")
+        logger.info(f"Successfully uploaded to s3://{S3_BUCKET_NAME}/{image_file_key}")
         url = s3_client.generate_presigned_url(
             "get_object",
-            Params={"Bucket": bucket_name, "Key": image_file_key},
+            Params={"Bucket": S3_BUCKET_NAME, "Key": image_file_key},
             ExpiresIn=86400,
         )
         return {"file_key": image_file_key, "presigned_url": url}
@@ -367,7 +368,7 @@ async def batch_update_pnl():
         )
 
         async with AsyncClient() as client:
-            tasks = [get_random_number(client) for _ in range(2)]
+            tasks = [get_random_number(client) for _ in range(custom_get_random_int())]
             res = await asyncio.gather(*tasks)
 
         random_number = statistics.mean(res)
