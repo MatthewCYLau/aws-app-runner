@@ -1,7 +1,9 @@
+import asyncio
 from io import StringIO
 import io
 import json
 import time
+import aioboto3
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Response
@@ -26,7 +28,7 @@ logger = get_logger(__name__)
 
 matplotlib.use("agg")
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 
 class PlotRequest(BaseModel):
@@ -55,13 +57,73 @@ def receive_sqs_messages():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+async def process_message(message_body: str):
+    logger.info("Processing message")
+    message_dict = json.loads(message_body)
+    logger.info(f"Counter is: {message_dict.get('counter')}")
+    await asyncio.sleep(1)
+
+
+async def poll_sqs_queue():
+    logger.info("Starting SQS Polling consumer...")
+
+    session = aioboto3.Session()
+
+    async with session.client("sqs", region_name="us-east-1") as sqs_client:
+        while True:
+            try:
+                response = await sqs_client.receive_message(
+                    QueueUrl=SQS_QUEUE_URL,
+                    MaxNumberOfMessages=10,
+                    WaitTimeSeconds=20,
+                    VisibilityTimeout=30,
+                )
+
+                messages = response.get("Messages", [])
+                if not messages:
+                    continue
+
+                logger.info(f"Received {len(messages)} messages from SQS.")
+
+                for message in messages:
+                    try:
+                        await process_message(message["Body"])
+
+                        await sqs_client.delete_message(
+                            QueueUrl=SQS_QUEUE_URL,
+                            ReceiptHandle=message["ReceiptHandle"],
+                        )
+                    except Exception as msg_err:
+                        logger.error(f"Failed to handle specific message: {msg_err}")
+
+            except asyncio.CancelledError:
+                logger.info(
+                    "SQS Polling task caught cancellation signal. Exiting clean..."
+                )
+                break
+            except Exception as e:
+                logger.error(f"Error connection to SQS or polling: {e}")
+                await asyncio.sleep(10)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler = AsyncIOScheduler()
     scheduler.add_job(receive_sqs_messages, "interval", minutes=1)
     scheduler.add_job(batch_update_pnl, "interval", minutes=1)
     scheduler.start()
+    sqs_task = asyncio.create_task(poll_sqs_queue())
+
     yield
+
+    logger.info("Shutting down background tasks...")
+    scheduler.shutdown()
+
+    sqs_task.cancel()
+    try:
+        await sqs_task
+    except asyncio.CancelledError:
+        logger.error("SQS Polling task successfully stopped.")
 
 
 app = FastAPI(lifespan=lifespan)
