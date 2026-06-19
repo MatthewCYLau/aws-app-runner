@@ -13,3 +13,4 @@ pydantic
 prometheus-client
 yfinance
 httpx
+aioboto3
