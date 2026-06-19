@@ -11,6 +11,10 @@ spec:
     metadata:
       labels:
         app: aws-app
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8080"
     spec:
       serviceAccountName: app-sa
       containers:
@@ -18,7 +22,9 @@ spec:
           image: 830663695860.dkr.ecr.us-east-1.amazonaws.com/aws-app-runner:latest
           env:
             - name: DB_HOST
-              value: terraform-20260603015541963900000019.c3bji2qrl6dz.us-east-1.rds.amazonaws.com
+              value: terraform-2026061906222278310000000e.c3bji2qrl6dz.us-east-1.rds.amazonaws.com
+            - name: DB_HOST_READ_ONLY
+              value: postgres-read-replica.c3bji2qrl6dz.us-east-1.rds.amazonaws.com
             - name: S3_BUCKET_NAME
               value: aws-app-runner-assets
             - name: SQS_QUEUE_URL
