@@ -1,4 +1,5 @@
 import asyncio
+import platform
 from io import StringIO
 import io
 import json
@@ -23,6 +24,8 @@ from api.config.metrics import AWS_TRANSACTION_COUNTER, TX_LATENCY
 from api.product.views import router as product_router
 from api.position.views import batch_update_pnl, router as position_router
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+
+from api.utils.utils import get_package_version
 
 logger = get_logger(__name__)
 
@@ -108,6 +111,11 @@ async def poll_sqs_queue():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
+    logger.info(f"Python Version: {platform.python_version()}")
+    for package in ["fastapi", "uvicorn"]:
+        logger.info(f"{package} Version: {get_package_version(package)}")
+
     scheduler = AsyncIOScheduler()
     scheduler.add_job(receive_sqs_messages, "interval", minutes=1)
     scheduler.add_job(batch_update_pnl, "interval", minutes=1)

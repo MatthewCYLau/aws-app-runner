@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from random import randint
+from importlib.metadata import version, PackageNotFoundError
 
 
 @dataclass
@@ -24,3 +25,10 @@ def custom_get_random_int():
         counters_sum += chuck_sum
 
     return counters_sum // len(counters_list)
+
+
+def get_package_version(package_name: str) -> str:
+    try:
+        return version(package_name)
+    except PackageNotFoundError:
+        return "Not Installed"
