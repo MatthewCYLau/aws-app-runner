@@ -22,15 +22,24 @@ spec:
           image: 830663695860.dkr.ecr.us-east-1.amazonaws.com/aws-app-runner:latest
           env:
             - name: DB_HOST
-              value: terraform-2026061906222278310000000e.c3bji2qrl6dz.us-east-1.rds.amazonaws.com
+              value: terraform-2026062406491877530000001b.c3bji2qrl6dz.us-east-1.rds.amazonaws.com
             - name: DB_HOST_READ_ONLY
               value: postgres-read-replica.c3bji2qrl6dz.us-east-1.rds.amazonaws.com
             - name: S3_BUCKET_NAME
               value: aws-app-runner-assets
             - name: SQS_QUEUE_URL
               value: https://sqs.us-east-1.amazonaws.com/830663695860/aws-app-task-queue
+            - name: EKS_ENVIRONMENT
+              value: Production
           ports:
             - containerPort: 8080
+          volumeMounts:
+            - name: data-disk
+              mountPath: /data
+      volumes:
+        - name: data-disk
+          persistentVolumeClaim:
+            claimName: my-ebs-pvc
 ---
 apiVersion: v1
 kind: Service
