@@ -10,3 +10,4 @@ SQS_QUEUE_URL = os.environ.get(
     "SQS_QUEUE_URL",
     "https://sqs.us-east-1.amazonaws.com/830663695860/aws-app-task-queue",
 )
+MOUNT_PATH = "/data"

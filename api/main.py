@@ -1,7 +1,9 @@
 import asyncio
 import platform
 from io import StringIO
+from datetime import datetime
 import io
+import os
 import json
 import time
 import aioboto3
@@ -11,13 +13,12 @@ from fastapi import FastAPI, HTTPException, Response
 import boto3
 import matplotlib
 import matplotlib.pyplot as plt
-
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from botocore.exceptions import ClientError
-from api.config.constants import AWS_REGION, SQS_QUEUE_URL, S3_BUCKET_NAME
+from api.config.constants import AWS_REGION, SQS_QUEUE_URL, S3_BUCKET_NAME, MOUNT_PATH
 from api.config.database import Base, engine
 from api.config.logging import get_logger
 from api.config.metrics import AWS_TRANSACTION_COUNTER, TX_LATENCY
@@ -31,7 +32,7 @@ logger = get_logger(__name__)
 
 matplotlib.use("agg")
 
-# Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 
 class PlotRequest(BaseModel):
@@ -63,7 +64,15 @@ def receive_sqs_messages():
 async def process_message(message_body: str):
     logger.info("Processing message")
     message_dict = json.loads(message_body)
-    logger.info(f"Counter is: {message_dict.get('counter')}")
+    counter = message_dict.get("counter")
+    logger.info(f"Counter is: {counter}")
+    if os.environ.get("EKS_ENVIRONMENT"):
+        text_file_path = f"{MOUNT_PATH}/output_text_{str(datetime.now().strftime('%Y-%m-%d-%H-%M'))}.txt"
+        with open(text_file_path, "w") as f:
+            f.write(f"Counter is {counter}")
+        with open(text_file_path, "r") as f:
+            body = f.read()
+        logger.info(body)
     await asyncio.sleep(1)
 
 
