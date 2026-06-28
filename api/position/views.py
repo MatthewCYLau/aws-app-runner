@@ -27,7 +27,7 @@ import numpy as np
 from api.config.exception import BadRequestException, NotFoundException
 from api.config.constants import S3_BUCKET_NAME
 from api.config.logging import get_logger
-from api.position.schemas import PositiontBase, UpdatePositiontRequest
+from api.position.schemas import PositionBase, UpdatePositiontRequest
 from api.utils.dynamodb_util import get_dynamodb_table_client
 from api.utils.stock_util import fetch_live_snapshots
 from api.utils.utils import custom_get_random_int
@@ -76,7 +76,7 @@ def get_stock_positions(startDate: str = None, endDate: str = None):
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def insert_stock_position(position_data: PositiontBase):
+def insert_stock_position(position_data: PositionBase):
 
     timestamp = datetime.now(timezone.utc).isoformat()
     positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)

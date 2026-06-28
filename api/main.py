@@ -1,7 +1,8 @@
 import asyncio
+from decimal import Decimal
 import platform
 from io import StringIO
-from datetime import datetime
+from datetime import datetime, timezone
 import io
 import os
 import json
@@ -18,14 +19,23 @@ from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from botocore.exceptions import ClientError
-from api.config.constants import AWS_REGION, SQS_QUEUE_URL, S3_BUCKET_NAME, MOUNT_PATH
+from api.config.constants import (
+    AWS_REGION,
+    SQS_QUEUE_URL,
+    S3_BUCKET_NAME,
+    MOUNT_PATH,
+    STOCK_TRADING_POSITIONS_TABLE,
+)
 from api.config.database import Base, engine
+from api.config.exception import NotFoundException
 from api.config.logging import get_logger
 from api.config.metrics import AWS_TRANSACTION_COUNTER, TX_LATENCY
+from api.position.schemas import ShockPositionMessageBase
 from api.product.views import router as product_router
 from api.position.views import batch_update_pnl, router as position_router
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
+from api.utils.dynamodb_util import get_dynamodb_table_client
 from api.utils.utils import get_package_version
 
 logger = get_logger(__name__)
@@ -65,6 +75,8 @@ async def process_message(message_body: str):
     logger.info("Processing message")
     message_dict = json.loads(message_body)
     counter = message_dict.get("counter")
+    position_id = message_dict.get("position_id")
+    multiplier = message_dict.get("multiplier")
     logger.info(f"Counter is: {counter}")
     if os.environ.get("EKS_ENVIRONMENT"):
         text_file_path = f"{MOUNT_PATH}/output_text_{str(datetime.now().strftime('%Y-%m-%d-%H-%M'))}.txt"
@@ -74,6 +86,48 @@ async def process_message(message_body: str):
             body = f.read()
         logger.info(body)
     await asyncio.sleep(1)
+
+    logger.info(f"Updating position {position_id}")
+    positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)
+
+    try:
+        response = positions_table.query(
+            KeyConditionExpression=boto3.dynamodb.conditions.Key("PositionId").eq(
+                str(position_id)
+            )
+        )
+
+        items = response.get("Items", [])
+
+        if not items:
+            raise NotFoundException(f"Position with id {position_id} not found")
+
+        sort_key_value = items[0]["CreatedAt"]
+        current_quantity = items[0]["Quantity"]
+        open_price = items[0]["OpenPrice"]
+        new_quantity = current_quantity * multiplier
+        new_value = new_quantity * open_price
+
+        response = positions_table.update_item(
+            Key={"PositionId": str(position_id), "CreatedAt": sort_key_value},
+            UpdateExpression="SET Quantity = :q, #v = :v, LastModified = :lm",
+            ExpressionAttributeNames={
+                "#v": "Value",  # 'Value' is a reserved keyword in DynamoDB
+            },
+            ExpressionAttributeValues={
+                ":q": new_quantity,
+                ":v": Decimal(str(new_value)),
+                ":lm": datetime.now(timezone.utc).isoformat(),
+            },
+            ReturnValues="ALL_NEW",
+        )
+
+        logger.info(f"Successfully updated position {position_id}")
+        return response
+
+    except Exception as e:
+        logger.error(f"Failed to fetch position {position_id}: {e}")
+        raise
 
 
 async def poll_sqs_queue():
@@ -155,8 +209,8 @@ def up():
     return "Up!"
 
 
-def get_random_int(max: int = 100):
-    return np.random.randint(max, size=1)[0]
+def get_random_int(max_int: int = 100):
+    return np.random.randint(1, max_int, size=1)[0]
 
 
 def generate_df(size: int = 100):
@@ -275,13 +329,19 @@ def plot_df_upload_s3(request_data: PlotRequest):
 
 
 @app.post("/sqs")
-def publish_sqs():
+def publish_sqs(shock_position_data: ShockPositionMessageBase):
     start_time = time.perf_counter()
     sqs_client = boto3.client("sqs", region_name="us-east-1")
     try:
         response = sqs_client.send_message(
             QueueUrl=SQS_QUEUE_URL,
-            MessageBody=json.dumps({"counter": int(get_random_int())}),
+            MessageBody=json.dumps(
+                {
+                    "counter": int(get_random_int(5)),
+                    "position_id": shock_position_data.position_id,
+                    "multiplier": shock_position_data.multiplier,
+                }
+            ),
         )
         AWS_TRANSACTION_COUNTER.labels(status="in_progress", type="sqs").inc()
         return {"status": "queued", "message_id": response.get("MessageId")}

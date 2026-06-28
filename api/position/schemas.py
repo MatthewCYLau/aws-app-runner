@@ -5,7 +5,7 @@ from pydantic import BaseModel, field_validator, ValidationInfo
 from api.utils.stock_util import check_asset_available
 
 
-class PositiontBase(BaseModel):
+class PositionBase(BaseModel):
     stock_symbol: str
     open_price: float
     quantity: int
@@ -22,3 +22,8 @@ class UpdatePositiontRequest(BaseModel):
     open_price: float
     quantity: int
     isOpen: Optional[bool] = True
+
+
+class ShockPositionMessageBase(BaseModel):
+    position_id: str
+    multiplier: int
