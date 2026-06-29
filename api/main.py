@@ -30,7 +30,7 @@ from api.config.database import Base, engine
 from api.config.exception import NotFoundException
 from api.config.logging import get_logger
 from api.config.metrics import AWS_TRANSACTION_COUNTER, TX_LATENCY
-from api.position.schemas import ShockPositionMessageBase
+from api.position.schemas import UpdatePositionMessageBase
 from api.product.views import router as product_router
 from api.position.views import batch_update_pnl, router as position_router
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
@@ -76,7 +76,7 @@ async def process_message(message_body: str):
     message_dict = json.loads(message_body)
     counter = message_dict.get("counter")
     position_id = message_dict.get("position_id")
-    multiplier = message_dict.get("multiplier")
+    new_quantity = message_dict.get("quantity")
     logger.info(f"Counter is: {counter}")
     if os.environ.get("EKS_ENVIRONMENT"):
         text_file_path = f"{MOUNT_PATH}/output_text_{str(datetime.now().strftime('%Y-%m-%d-%H-%M'))}.txt"
@@ -103,9 +103,7 @@ async def process_message(message_body: str):
             raise NotFoundException(f"Position with id {position_id} not found")
 
         sort_key_value = items[0]["CreatedAt"]
-        current_quantity = items[0]["Quantity"]
         open_price = items[0]["OpenPrice"]
-        new_quantity = current_quantity * multiplier
         new_value = new_quantity * open_price
 
         response = positions_table.update_item(
@@ -329,7 +327,7 @@ def plot_df_upload_s3(request_data: PlotRequest):
 
 
 @app.post("/sqs")
-def publish_sqs(shock_position_data: ShockPositionMessageBase):
+def publish_sqs(shock_position_data: UpdatePositionMessageBase):
     start_time = time.perf_counter()
     sqs_client = boto3.client("sqs", region_name="us-east-1")
     try:
