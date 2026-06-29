@@ -337,7 +337,7 @@ def publish_sqs(shock_position_data: UpdatePositionMessageBase):
                 {
                     "counter": int(get_random_int(5)),
                     "position_id": shock_position_data.position_id,
-                    "multiplier": shock_position_data.multiplier,
+                    "quantity": shock_position_data.quantity,
                 }
             ),
         )
