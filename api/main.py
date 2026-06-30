@@ -26,7 +26,7 @@ from api.config.constants import (
     MOUNT_PATH,
     STOCK_TRADING_POSITIONS_TABLE,
 )
-from api.config.database import Base, engine
+from api.config.database import DB_HOST, Base, engine
 from api.config.exception import NotFoundException
 from api.config.logging import get_logger
 from api.config.metrics import AWS_TRANSACTION_COUNTER, TX_LATENCY
@@ -42,7 +42,9 @@ logger = get_logger(__name__)
 
 matplotlib.use("agg")
 
-Base.metadata.create_all(bind=engine)
+
+if DB_HOST:
+    Base.metadata.create_all(bind=engine)
 
 
 class PlotRequest(BaseModel):
