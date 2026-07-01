@@ -3,9 +3,15 @@ import streamlit as st
 import pandas as pd
 import boto3
 import plotly.graph_objects as go
+import logging
 from plotly.subplots import make_subplots
 
 from config.constants import AWS_REGION, columns_rename_map
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 
 st.set_page_config(page_title="Stock Analytics", layout="wide")
 st.title("📈 Stock PnL Tracker")
@@ -74,6 +80,13 @@ def plot_position_pnl_timeseries(df: pd.DataFrame, position_id: str):
 
     if len(position_df):
         shocked_pnl_df = position_df[["Shocked PnL"]]
+
+        stale_mask = (
+            shocked_pnl_df["Shocked PnL"].shift(-1) == shocked_pnl_df["Shocked PnL"]
+        )
+        stale_data_df = shocked_pnl_df.loc[stale_mask]
+
+        logging.info(f"Stale data count: {len(stale_data_df)}")
 
         st.subheader(f"{position_id} Shocked PnL")
         st.line_chart(shocked_pnl_df)
