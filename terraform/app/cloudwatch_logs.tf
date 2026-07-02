@@ -52,3 +52,24 @@ resource "aws_cloudwatch_dashboard" "main" {
     ]
   })
 }
+
+resource "aws_cloudwatch_log_metric_filter" "eks_app" {
+  name           = "eks-dev-namespace-errors"
+  log_group_name = "/aws/containerinsights/${module.eks.cluster_name}/application"
+
+  # Clean, multiline pattern definition
+  pattern = <<-EOT
+    { 
+      ($.kubernetes.namespace_name = "dev") && 
+      ($.kubernetes.pod_name = "aws-app-deployment-*") && 
+      ($.log_processed.event = "Successfully inserted*")
+    }
+  EOT
+
+  metric_transformation {
+    name          = "DevPodSpecificLogMessageCount"
+    namespace     = "EKS/ApplicationMetrics"
+    value         = "1"
+    default_value = "0"
+  }
+}
