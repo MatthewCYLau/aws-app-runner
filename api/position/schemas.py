@@ -17,7 +17,9 @@ class PositionBase(BaseModel):
     @classmethod
     def check_stock(cls, stock_symbol: str, info: ValidationInfo) -> str:
         if not check_asset_available(stock_symbol):
-            error_message = f"{info.field_name} is not a valid stock symbol"
+            error_message = (
+                f"{info.field_name} {stock_symbol} is not a valid stock symbol"
+            )
             logger.error(error_message)
             raise ValueError(error_message)
         return stock_symbol
@@ -37,5 +39,7 @@ class UpdatePositionMessageBase(BaseModel):
     @classmethod
     def check_stock(cls, position_id: str, info: ValidationInfo) -> str:
         if not validate_position(position_id):
-            raise ValueError(f"{info.field_name} is not a valid position ID")
+            raise ValueError(
+                f"{info.field_name} {position_id} is not a valid position ID"
+            )
         return position_id
