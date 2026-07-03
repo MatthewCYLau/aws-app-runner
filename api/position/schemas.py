@@ -1,9 +1,11 @@
 from typing import Optional
 
 from pydantic import BaseModel, field_validator, ValidationInfo
-
+from api.config.logging import get_logger
 from api.utils.dynamodb_util import validate_position
 from api.utils.stock_util import check_asset_available
+
+logger = get_logger(__name__)
 
 
 class PositionBase(BaseModel):
@@ -15,7 +17,9 @@ class PositionBase(BaseModel):
     @classmethod
     def check_stock(cls, stock_symbol: str, info: ValidationInfo) -> str:
         if not check_asset_available(stock_symbol):
-            raise ValueError(f"{info.field_name} is not a valid stock symbol")
+            error_message = f"{info.field_name} is not a valid stock symbol"
+            logger.error(error_message)
+            raise ValueError(error_message)
         return stock_symbol
 
 
