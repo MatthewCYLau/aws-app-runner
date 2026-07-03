@@ -48,13 +48,29 @@ resource "aws_cloudwatch_dashboard" "main" {
           region = "us-east-1"
           title  = "New product creation over time"
         }
+      },
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            ["EKS/ApplicationMetrics", "DevPodSpecificLogMessageCount"]
+          ]
+          period = 300
+          stat   = "Sum"
+          region = "us-east-1"
+          title  = "Position inserted to DynamoDB over time"
+        }
       }
     ]
   })
 }
 
 resource "aws_cloudwatch_log_metric_filter" "eks_app" {
-  name           = "eks-dev-namespace-errors"
+  name           = "position-inserted-dynamodb"
   log_group_name = "/aws/containerinsights/${module.eks.cluster_name}/application"
 
   # Clean, multiline pattern definition
@@ -68,6 +84,27 @@ resource "aws_cloudwatch_log_metric_filter" "eks_app" {
 
   metric_transformation {
     name          = "DevPodSpecificLogMessageCount"
+    namespace     = "EKS/ApplicationMetrics"
+    value         = "1"
+    default_value = "0"
+  }
+}
+
+resource "aws_cloudwatch_log_metric_filter" "eks_app_error" {
+  name           = "app-error"
+  log_group_name = "/aws/containerinsights/${module.eks.cluster_name}/application"
+
+  # Clean, multiline pattern definition
+  pattern = <<-EOT
+    { 
+      ($.kubernetes.namespace_name = "dev") && 
+      ($.kubernetes.pod_name = "aws-app-deployment-*") && 
+      ($.log_processed.level = "error")
+    }
+  EOT
+
+  metric_transformation {
+    name          = "DevPodErrorLogMessageCount"
     namespace     = "EKS/ApplicationMetrics"
     value         = "1"
     default_value = "0"
