@@ -110,3 +110,18 @@ resource "aws_cloudwatch_log_metric_filter" "eks_app_error" {
     default_value = "0"
   }
 }
+
+resource "aws_cloudwatch_query_definition" "error_logs_query" {
+  name = "application/errors"
+
+  log_group_names = [
+    "/aws/containerinsights/demo-eks-cluster/application",
+  ]
+
+  query_string = <<EOF
+fields @timestamp, @message
+| sort @timestamp desc
+| filter kubernetes.namespace_name == 'dev'
+| filter log_processed.level == 'error'
+EOF
+}
