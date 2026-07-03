@@ -22,7 +22,7 @@ spec:
           image: 830663695860.dkr.ecr.us-east-1.amazonaws.com/aws-app-runner:latest
           env:
             - name: DB_HOST
-              value: terraform-2026070306574432200000001b.c3bji2qrl6dz.us-east-1.rds.amazonaws.com
+              value: "{{ .Values.db_host }}"
             - name: DB_HOST_READ_ONLY
               value: postgres-read-replica.c3bji2qrl6dz.us-east-1.rds.amazonaws.com
             - name: S3_BUCKET_NAME

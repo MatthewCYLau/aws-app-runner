@@ -1,0 +1,13 @@
+apiVersion: v2
+name: helm-chart
+version: 1.0.0
+
+maintainers:
+  - name: Matthew Lau
+    email: lau.cy.matthew@gmail.com
+
+keywords:
+  - aws
+  - kubernetes
+
+description: A simple Python application running on EKS

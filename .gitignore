@@ -9,3 +9,4 @@ certs
 # python
 venv
 __pycache__
+*.tgz
