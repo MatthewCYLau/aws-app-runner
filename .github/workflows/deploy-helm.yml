@@ -1,0 +1,40 @@
+name: Package and Push Helm Chart to AWS ECR
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "helm-chart/**"
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: helm-chart
+
+jobs:
+  package-and-push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.IAM_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Package and Push Helm Chart
+        run: |
+          mkdir dist
+          helm package helm-chart --destination dist
+          CHART_PACKAGE=$(ls dist/*.tgz)
+          REGISTRY="${{ steps.login-ecr.outputs.registry }}"
+          helm push "$CHART_PACKAGE" "oci://$REGISTRY"
