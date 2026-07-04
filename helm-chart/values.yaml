@@ -1,1 +1,1 @@
-db_host: ""
+db_host: aws-app-alb-1490110326.us-east-1.elb.amazonaws.com
