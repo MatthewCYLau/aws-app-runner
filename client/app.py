@@ -73,6 +73,28 @@ def plot_position_daily_pnl(
 
     st.plotly_chart(fig, width="stretch")
 
+    fig = go.Figure(
+        data=[
+            go.Candlestick(
+                x=df.index,
+                open=df["Open"],
+                high=df["High"],
+                low=df["Low"],
+                close=df["Close"],
+                name=stock_symbol,
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title=f"{stock_symbol} Candlestick Chart",
+        yaxis_title="Price (USD)",
+        xaxis_title="Date",
+        xaxis_rangeslider_visible=False,
+        template="plotly_dark",
+    )
+    st.plotly_chart(fig, width="stretch")
+
 
 def plot_position_pnl_timeseries(df: pd.DataFrame, position_id: str):
 
