@@ -257,11 +257,41 @@ resource "aws_iam_role_policy" "lambda_policy" {
   })
 }
 
-/*
 resource "aws_eks_pod_identity_association" "s3_access" {
   cluster_name    = module.eks.cluster_name
   namespace       = "dev"
   service_account = "app-sa"
   role_arn        = aws_iam_role.ecs_task_role.arn
 }
-*/
+
+resource "aws_iam_role" "cloudwatch_observability" {
+  name = "demo-eks-cluster-cloudwatch-observability"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "pods.eks.amazonaws.com"
+        }
+        Action = [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "cloudwatch_observability" {
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  role       = aws_iam_role.cloudwatch_observability.name
+}
+
+resource "aws_eks_pod_identity_association" "cloudwatch_observability" {
+  cluster_name    = module.eks.cluster_name
+  namespace       = "amazon-cloudwatch"
+  service_account = "cloudwatch-agent"
+  role_arn        = aws_iam_role.cloudwatch_observability.arn
+}

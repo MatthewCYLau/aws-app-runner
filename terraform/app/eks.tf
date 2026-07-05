@@ -14,6 +14,22 @@ module "eks" {
 
   enable_cluster_creator_admin_permissions = true
 
+  access_entries = {
+    admin_user = {
+      kubernetes_groups = []
+      principal_arn     = "arn:aws:iam::830663695860:role/github-actions-terraform-role"
+
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+
   eks_managed_node_groups = {
     general = {
       min_size     = 1
@@ -27,6 +43,9 @@ module "eks" {
   # enable_irsa = true
   cluster_addons = {
     eks-pod-identity-agent = {}
+    amazon-cloudwatch-observability = {
+      most_recent = true
+    }
   }
 }
 */
