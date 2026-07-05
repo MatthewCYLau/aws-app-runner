@@ -90,6 +90,7 @@ resource "aws_cloudwatch_log_metric_filter" "eks_app" {
   }
 }
 
+/*
 resource "aws_cloudwatch_log_metric_filter" "eks_app_error" {
   name           = "app-error"
   log_group_name = "/aws/containerinsights/${module.eks.cluster_name}/application"
@@ -115,7 +116,7 @@ resource "aws_cloudwatch_query_definition" "error_logs_query" {
   name = "application/errors"
 
   log_group_names = [
-    "/aws/containerinsights/demo-eks-cluster/application",
+    "/aws/containerinsights/${module.eks.cluster_name}/application",
   ]
 
   query_string = <<EOF
@@ -125,3 +126,4 @@ fields @timestamp, @message
 | filter log_processed.level == 'error'
 EOF
 }
+*/
