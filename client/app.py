@@ -5,6 +5,7 @@ import boto3
 import plotly.graph_objects as go
 import logging
 from plotly.subplots import make_subplots
+import plotly.express as px
 
 from config.constants import AWS_REGION, columns_rename_map
 
@@ -191,6 +192,37 @@ if not stocks_pnl_df.empty:
     st.subheader("PnL by stock symbol")
     st.dataframe(stocks_pnl_df.tail(10))
 
+    stock_symbols = list(stocks_pnl_df.index)
+    logging.info(stock_symbols)
+    data = yf.download(stock_symbols, period="1y")["Close"]
+
+    daily_returns = data.pct_change().dropna()
+
+    df_melted = daily_returns.reset_index().melt(
+        id_vars="Date",
+        value_vars=stock_symbols,
+        var_name="Ticker",
+        value_name="Daily Return",
+    )
+
+    fig = px.histogram(
+        df_melted,
+        x="Daily Return",
+        color="Ticker",
+        barmode="overlay",
+        nbins=100,
+        title=f"Daily Returns Distribution {stock_symbols}",
+        labels={"Daily Return": "Daily % Return (Decimal)"},
+        opacity=0.6,
+        marginal="box",
+    )
+
+    fig.update_layout(
+        bargap=0.05,
+        xaxis_tickformat=".1%",
+        yaxis_title="Frequency Count",
+    )
+    st.plotly_chart(fig, width="stretch")
 
 for stock_position in positions_pnl_aggregate:
     postion_id = stock_position.get("PositionId")
