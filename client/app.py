@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import yfinance as yf
 import streamlit as st
 import pandas as pd
@@ -39,6 +41,12 @@ def plot_position_daily_pnl(
     st.line_chart(dail_pnl_df)
 
     df["Daily Change %"] = df["Close"].pct_change() * 100
+
+    now_utc = datetime.now(timezone.utc)
+    year = now_utc.today().year
+    df_current_year = df.loc[str(year) :]
+    logging.info(f"Count of current year {year} rows: {len(df_current_year)}")
+
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     fig.add_trace(
         go.Scatter(
