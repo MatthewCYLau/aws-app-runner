@@ -1,15 +1,22 @@
 import uuid
 import pandas as pd
 import boto3
+import io
 from io import StringIO
 from datetime import datetime
 from sqlalchemy import text
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, File, UploadFile, status
 from sqlalchemy.orm import Session
 
-from api.config.database import get_session, get_read_only_session, read_only_engine
+from api.config.database import (
+    get_session,
+    get_read_only_session,
+    read_only_engine,
+    engine,
+)
 from api.config.logging import get_logger
 from api.config.constants import S3_BUCKET_NAME
+from api.product.models import Product
 from api.product.repository import ProductRepository
 from api.product.schemas import ProductBase, ProductResponse
 from api.product.service import ProductService
@@ -137,3 +144,16 @@ def delete_product(
 ):
     logger.info(f"Deleting product: {product_id}")
     service.delete_product_by_id(product_id)
+
+
+@router.post("/upload", status_code=status.HTTP_201_CREATED)
+async def upload_products_from_csv(upload_file: UploadFile = File(...)):
+    contents = await upload_file.read()
+    df = pd.read_csv(io.BytesIO(contents))
+    logger.info(df)
+    df.to_sql(name=Product.__tablename__, con=engine, if_exists="append", index=False)
+
+    return {
+        "message": "CSV data successfully uploaded to RDS",
+        "rows_inserted": len(df),
+    }
