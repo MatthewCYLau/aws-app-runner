@@ -3,7 +3,7 @@ import pandas as pd
 import boto3
 import io
 from io import StringIO
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import text
 from fastapi import APIRouter, Depends, File, UploadFile, status
 from sqlalchemy.orm import Session
@@ -150,7 +150,8 @@ def delete_product(
 async def upload_products_from_csv(upload_file: UploadFile = File(...)):
     contents = await upload_file.read()
     df = pd.read_csv(io.BytesIO(contents))
-    logger.info(df)
+    df["id"] = [uuid.uuid4() for _ in range(len(df))]
+    df["created_at"] = datetime.now(timezone.utc)
     df.to_sql(name=Product.__tablename__, con=engine, if_exists="append", index=False)
 
     return {
