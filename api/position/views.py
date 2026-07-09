@@ -1,3 +1,4 @@
+import csv
 import io
 import os
 import uuid
@@ -20,7 +21,7 @@ import pandas as pd
 from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
-from fastapi import APIRouter, status
+from fastapi import APIRouter, File, HTTPException, UploadFile, status
 import numpy as np
 
 
@@ -443,3 +444,54 @@ async def batch_update_pnl():
             )
 
     logger.info(f"Batch update complete for {len(positions_to_update)} records.")
+
+
+@router.post("/upload-csv", status_code=status.HTTP_201_CREATED)
+async def upload_csv(upload_file: UploadFile = File(...)):
+
+    if not upload_file.filename.endswith(".csv"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file format. Please upload a CSV file.",
+        )
+
+    try:
+        contents = await upload_file.read()
+        csv_file = io.StringIO(contents.decode("utf-8"))
+        reader = csv.DictReader(csv_file)
+
+        timestamp = datetime.now(timezone.utc).isoformat()
+        positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)
+
+        with positions_table.batch_writer() as batch:
+            for row in reader:
+                item = {k: v for k, v in row.items() if v != ""}
+
+                logger.info(item)
+                if item:
+                    Item = {
+                        "PositionId": str(uuid.uuid4()),
+                        "StockSymbol": item["stock symbol"],
+                        "CreatedAt": timestamp,
+                        "LastModified": timestamp,
+                        "OpenPrice": Decimal(str(item["open price"])),
+                        "Quantity": item["quantity"],
+                        "Value": Decimal(
+                            str(float(item["open price"]) * int(item["quantity"]))
+                        ),
+                        "Open": True,
+                    }
+                    batch.put_item(Item=Item)
+                    logger.info(
+                        f"Successfully inserted {item['stock symbol']} at {timestamp}"
+                    )
+                    OPEN_POSITIONS_GAUGE.inc()
+
+            return "Ok"
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred: {str(e)}",
+        )
+    finally:
+        await upload_file.close()

@@ -30,3 +30,9 @@ helm upgrade --install aws-app-release \
             --namespace dev \
             -f ./values.yaml
 ```
+
+## Prometheus source
+
+```
+http://prometheus-server.prometheus.svc.cluster.local:80
+```
