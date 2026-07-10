@@ -232,6 +232,20 @@ if not stocks_pnl_df.empty:
     )
     st.plotly_chart(fig, width="stretch")
 
+    daily_returns = data.pct_change()
+    correlation_matrix = daily_returns.corr()
+    fig = px.imshow(
+        correlation_matrix,
+        text_auto=".2f",
+        aspect="auto",
+        color_continuous_scale="RdBu_r",
+        labels=dict(color="Correlation"),
+        title="Stock Returns Correlation Heatmap",
+    )
+
+    fig.update_xaxes(side="top")
+    st.plotly_chart(fig, width="stretch")
+
 for stock_position in positions_pnl_aggregate:
     postion_id = stock_position.get("PositionId")
     open_price = float(stock_position.get("OpenPrice"))
