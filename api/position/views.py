@@ -9,6 +9,7 @@ import random
 from httpx import AsyncClient
 from matplotlib import pyplot as plt
 from api.config.constants import (
+    POSITIONS_CSV_COLUMNS,
     POSITIONS_PNL_AGGREGATE,
     POSITIONS_PNL_TIMESERIES,
     STOCK_TRADING_POSITIONS_TABLE,
@@ -464,10 +465,17 @@ async def upload_csv(upload_file: UploadFile = File(...)):
         positions_table = get_dynamodb_table_client(STOCK_TRADING_POSITIONS_TABLE)
 
         with positions_table.batch_writer() as batch:
+            counter = 0
+
+            if not all(key in POSITIONS_CSV_COLUMNS for key in reader.fieldnames):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid CSV column headers",
+                )
+
             for row in reader:
                 item = {k: v for k, v in row.items() if v != ""}
 
-                logger.info(item)
                 if item:
                     Item = {
                         "PositionId": str(uuid.uuid4()),
@@ -486,8 +494,13 @@ async def upload_csv(upload_file: UploadFile = File(...)):
                         f"Successfully inserted {item['stock symbol']} at {timestamp}"
                     )
                     OPEN_POSITIONS_GAUGE.inc()
+                    counter += 1
 
-            return "Ok"
+            return {
+                "message": "CSV positions data successfully uploaded to DynamoDB",
+                "positions_inserted": counter,
+            }
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

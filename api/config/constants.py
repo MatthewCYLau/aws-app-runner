@@ -11,3 +11,4 @@ SQS_QUEUE_URL = os.environ.get(
     "https://sqs.us-east-1.amazonaws.com/830663695860/aws-app-task-queue",
 )
 MOUNT_PATH = "/data"
+POSITIONS_CSV_COLUMNS = ["stock symbol", "open price", "quantity"]
