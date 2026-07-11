@@ -27,7 +27,7 @@ psql "host=$RDSHOST port=5432 dbname=apprunnerdb user=postgres_admin password=pa
 aws ecr get-login-password --region us-east-1 | helm registry login --username AWS --password-stdin 830663695860.dkr.ecr.us-east-1.amazonaws.com
 helm upgrade --install aws-app-release \
             oci://830663695860.dkr.ecr.us-east-1.amazonaws.com/helm-chart \
-            --version 1.0.0 \
+            --version 3.0.0 \
             --namespace dev \
             -f ./values.yaml
 ```
