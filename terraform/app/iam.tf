@@ -257,6 +257,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
   })
 }
 
+/*
 resource "aws_eks_pod_identity_association" "s3_access" {
   cluster_name    = module.eks.cluster_name
   namespace       = "dev"
@@ -295,3 +296,4 @@ resource "aws_eks_pod_identity_association" "cloudwatch_observability" {
   service_account = "cloudwatch-agent"
   role_arn        = aws_iam_role.cloudwatch_observability.arn
 }
+*/
