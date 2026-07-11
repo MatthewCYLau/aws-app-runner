@@ -14,3 +14,6 @@ sudo chown ec2-user:ec2-user /mnt/data
 # Check if the instance sees an attached role
 curl http://169.254.169.254/latest/meta-data/iam/security-credentials/
 aws s3 ls s3://aws-app-runner-assets
+
+# list mounted disks
+df -h -t ext4 -t xfs

@@ -69,7 +69,6 @@ resource "aws_cloudwatch_dashboard" "main" {
   })
 }
 
-/*
 resource "aws_cloudwatch_log_metric_filter" "eks_app" {
   name           = "position-inserted-dynamodb"
   log_group_name = "/aws/containerinsights/${module.eks.cluster_name}/application"
@@ -126,4 +125,3 @@ fields @timestamp, @message
 | filter log_processed.level == 'error'
 EOF
 }
-*/

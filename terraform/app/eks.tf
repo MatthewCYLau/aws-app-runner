@@ -1,4 +1,3 @@
-/*
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 20.0"
@@ -39,6 +38,26 @@ module "eks" {
       instance_types = ["t3.medium"]
       capacity_type  = "ON_DEMAND"
     }
+
+    dev_nodes = {
+      min_size       = 1
+      max_size       = 3
+      desired_size   = 1
+      instance_types = ["t3.medium"]
+
+      labels = {
+        np = "dev"
+      }
+
+      taints = [
+        {
+          key    = "np"
+          value  = "dev"
+          effect = "NO_SCHEDULE"
+        }
+      ]
+    }
+
   }
   # enable_irsa = true
   cluster_addons = {
@@ -48,4 +67,3 @@ module "eks" {
     }
   }
 }
-*/
