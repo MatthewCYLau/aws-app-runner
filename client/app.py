@@ -104,6 +104,20 @@ def plot_position_daily_pnl(
     )
     st.plotly_chart(fig, width="stretch")
 
+    monthly_df = df["Close"].to_frame().resample("ME").last()
+    df_monthly_return = monthly_df.pct_change().dropna() * 100
+    df_monthly_return.index = df_monthly_return.index.strftime("%B %Y")
+
+    fig = px.bar(
+        df_monthly_return,
+        x=df_monthly_return.index,
+        y="Close",
+        labels={"Close": "Return (%)", "Date": "Month"},
+        title=f"{stock_symbol} Monthly Returns (%)",
+    )
+    fig.update_traces(marker_color="royalblue")
+    st.plotly_chart(fig, width="stretch")
+
 
 def plot_position_pnl_timeseries(df: pd.DataFrame, position_id: str):
 
