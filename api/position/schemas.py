@@ -1,9 +1,9 @@
 from typing import Optional
 
-from pydantic import BaseModel, field_validator, ValidationInfo
+from pydantic import BaseModel, field_validator, ValidationInfo, model_validator
 from api.config.logging import get_logger
 from api.utils.dynamodb_util import validate_position
-from api.utils.stock_util import check_asset_available
+from api.utils.stock_util import check_asset_available, fetch_live_snapshots
 
 logger = get_logger(__name__)
 
@@ -23,6 +23,23 @@ class PositionBase(BaseModel):
             logger.error(error_message)
             raise ValueError(error_message)
         return stock_symbol
+
+    @model_validator(mode="after")
+    def check_open_price(self):
+
+        curr_price = fetch_live_snapshots(self.stock_symbol).loc[self.stock_symbol][
+            "Current_Price"
+        ]
+
+        lower_boundary = curr_price * 0.9
+        uppder_boundary = curr_price * 1.1
+
+        if self.open_price > uppder_boundary or self.open_price < lower_boundary:
+            error_message = f"{self.stock_symbol} open price {self.open_price} is outside of lower boundary {lower_boundary:.2f} and upper boundary {uppder_boundary:.2f}"
+            logger.error(error_message)
+            raise ValueError(error_message)
+
+        return self
 
 
 class UpdatePositiontRequest(BaseModel):
