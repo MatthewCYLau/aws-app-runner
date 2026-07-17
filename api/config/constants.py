@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 
 AWS_REGION = "us-east-1"
 STOCK_TRADING_POSITIONS_TABLE = "stock_trading_positions"
@@ -12,3 +13,11 @@ SQS_QUEUE_URL = os.environ.get(
 )
 MOUNT_PATH = "/data"
 POSITIONS_CSV_COLUMNS = ["stock symbol", "open price", "quantity"]
+
+
+PRODUCT_DF = pd.DataFrame(
+    {
+        "category": ["A", "B", "C"],
+        "name": ["Product one", "Product two", "Product three"],
+    }
+)

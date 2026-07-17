@@ -15,7 +15,7 @@ from api.config.database import (
     engine,
 )
 from api.config.logging import get_logger
-from api.config.constants import S3_BUCKET_NAME
+from api.config.constants import S3_BUCKET_NAME, PRODUCT_DF
 from api.product.models import Product
 from api.product.repository import ProductRepository
 from api.product.schemas import ProductBase, ProductResponse
@@ -88,17 +88,20 @@ def get_all_products_dataframe(upload_to_s3: bool = False):
 
         concat_df = pd.concat(all_df)
 
+        merged_df = concat_df.merge(PRODUCT_DF, on="name", how="left")
+        df_filled = merged_df.fillna("Unknown")
+
         if upload_to_s3:
             s3_client = boto3.client("s3")
             csv_buffer = StringIO()
-            concat_df.to_csv(csv_buffer, index=False)
+            df_filled.to_csv(csv_buffer, index=False)
             object_key = f"{datetime.now().timestamp()}_products_df.csv"
             s3_client.put_object(
                 Bucket=S3_BUCKET_NAME, Key=object_key, Body=csv_buffer.getvalue()
             )
             logger.info(f"Successfully uploaded to {object_key}")
 
-        return concat_df.to_dict(orient="records")
+        return df_filled.to_dict(orient="records")
 
     except Exception as e:
         logger.error(f"Failed to fetch products dataframe: {str(e)}")
