@@ -211,6 +211,15 @@ if not stocks_pnl_df.empty:
     stocks_pnl_df = stocks_pnl_df.rename(columns=columns_rename_map)
     stocks_pnl_df = stocks_pnl_df.set_index("Stock symbol")
     stocks_pnl_df.sort_index(ascending=True, inplace=True)
+
+    expected_cols = {"Total PnL", "Last modified"}
+    assert expected_cols.issubset(
+        stocks_pnl_df
+    ), f"Missing columns: {expected_cols - set(stocks_pnl_df.columns)}"
+    assert pd.api.types.is_object_dtype(
+        stocks_pnl_df["Total PnL"]
+    ), "Total PnL must be an object"
+
     st.subheader("PnL by stock symbol")
     st.dataframe(stocks_pnl_df.tail(10))
 
