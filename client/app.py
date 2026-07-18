@@ -220,6 +220,10 @@ if not stocks_pnl_df.empty:
         stocks_pnl_df["Total PnL"]
     ), "Total PnL must be an object"
 
+    stocks_pnl_df["Last modified"] = pd.to_datetime(
+        stocks_pnl_df["Last modified"], errors="coerce"
+    )
+
     st.subheader("PnL by stock symbol")
     st.dataframe(stocks_pnl_df.tail(10))
 
