@@ -224,6 +224,8 @@ if not stocks_pnl_df.empty:
         stocks_pnl_df["Last modified"], errors="coerce"
     )
 
+    stocks_pnl_df["Total PnL"] = stocks_pnl_df["Total PnL"].astype(float)
+
     st.subheader("PnL by stock symbol")
     st.dataframe(stocks_pnl_df.tail(10))
 
