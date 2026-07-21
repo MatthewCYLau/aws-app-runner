@@ -165,9 +165,12 @@ if not positions_pnl_aggregate_df.empty:
         "Unknown"
     )
 
-    positions_pnl_aggregate_df["Stock Total PnL"] = positions_pnl_aggregate_df.groupby(
+    positions_pnl_aggregate_df["Stock PnL Total"] = positions_pnl_aggregate_df.groupby(
         "Stock symbol"
     )["Total PnL"].transform("sum")
+    positions_pnl_aggregate_df["Stock PnL Mean"] = positions_pnl_aggregate_df.groupby(
+        "Stock symbol"
+    )["Total PnL"].transform("mean")
 
     positions_pnl_aggregate_df = positions_pnl_aggregate_df.set_index("Position Id")
     st.subheader("Aggregate PnL by postion ID")
