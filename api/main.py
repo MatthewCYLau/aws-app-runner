@@ -36,6 +36,7 @@ from api.position.views import batch_update_pnl, router as position_router
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from api.utils.dynamodb_util import get_dynamodb_table_client
+from api.utils.string_util import generate_filename_prefix
 from api.utils.utils import get_package_version
 
 logger = get_logger(__name__)
@@ -253,7 +254,7 @@ def upload_dataframe_s3():
 
     csv_buffer = StringIO()
     df.to_csv(csv_buffer, index=False)
-    object_key = f"{get_random_int()}_dataframe.csv"
+    object_key = f"{generate_filename_prefix()}_dataframe.csv"
     s3_client.put_object(
         Bucket=S3_BUCKET_NAME, Key=object_key, Body=csv_buffer.getvalue()
     )
