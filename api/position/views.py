@@ -6,7 +6,7 @@ import asyncio
 import boto3
 import statistics
 import random
-from httpx import AsyncClient
+from httpx import AsyncClient, HTTPStatusError
 from matplotlib import pyplot as plt
 from api.config.constants import (
     POSITIONS_CSV_COLUMNS,
@@ -326,12 +326,19 @@ async def get_shock_percent_normal():
     return pnl_shock_percent_normal
 
 
-async def get_random_number(async_client: AsyncClient):
-    res = await async_client.get("https://jsonplaceholder.typicode.com/posts")
-    res.raise_for_status()
-    res_data = res.json()
-    random_id = random.choice(res_data)["id"]
-    return random_id
+async def get_random_number(async_client: AsyncClient, max_try: int = 3):
+    for _ in range(max_try):
+        try:
+            res = await async_client.get("https://jsonplaceholder.typicode.com/posts")
+            res.raise_for_status()
+            res_data = res.json()
+            random_id = random.choice(res_data)["id"]
+            return random_id
+        except HTTPStatusError as e:
+            if isinstance(e, HTTPStatusError) and e.response.status_code <= 403:
+                return None
+            await asyncio.sleep(2)
+    return None
 
 
 async def batch_update_pnl():
