@@ -6,6 +6,9 @@ import asyncio
 import boto3
 import statistics
 import random
+import json
+from collections import defaultdict
+from itertools import islice
 from httpx import AsyncClient, HTTPStatusError
 from matplotlib import pyplot as plt
 from api.config.constants import (
@@ -40,6 +43,16 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/api/v1/positions", tags=["positions"])
 
 daily_volatility = 0.02
+
+
+def stream_json_file(file_name: str):
+    with open(file_name, "r") as f:
+        sliced_lines = islice(f, 1, 4)
+        for line in sliced_lines:
+            line = line.strip()
+            if line:
+                line_data = json.loads(line)
+                yield line_data
 
 
 def get_stock_current_price(stock_symbol: str):
@@ -369,8 +382,24 @@ async def batch_update_pnl():
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )
 
+        daily_volatility_map = defaultdict(float)
+        json_lines = stream_json_file("data/daily_volatility.json")
+
+        for line in json_lines:
+            daily_volatility_map[line.get("stock_symbol")] = (
+                int(line.get("value")) / 100
+            )
+
+        daily_vol = daily_volatility_map.get(stock_symbol, daily_volatility)
+        logger.info(f"Daily volatility values: {daily_vol}")
+
         pnl_shock_percent = Decimal(
-            str(np.random.normal(loc=0.0, scale=daily_volatility))
+            str(
+                np.random.normal(
+                    loc=0.0,
+                    scale=daily_vol,
+                )
+            )
         )
         pnl_shock_percent_rounded = pnl_shock_percent.quantize(
             Decimal("0.0001"), rounding=ROUND_HALF_UP
