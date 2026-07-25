@@ -346,7 +346,13 @@ async def get_random_number(async_client: AsyncClient, max_try: int = 3):
             res.raise_for_status()
             res_data = res.json()
             random_id = random.choice(res_data)["id"]
-            return random_id
+
+            df = pd.DataFrame(res_data)
+            df = df.set_index(df["id"])
+            random_series = df.sample(n=1).iloc[0]
+            random_series_id = random_series["id"]
+
+            return random.choice([random_id, random_series_id])
         except HTTPStatusError as e:
             if isinstance(e, HTTPStatusError) and e.response.status_code <= 403:
                 return None
