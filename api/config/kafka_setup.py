@@ -10,13 +10,20 @@ logger = get_logger(__name__)
 KAFKA_TOPIC = "market-events"
 KAFKA_HOST = os.getenv("KAFKA_HOST")
 
-kafka_producer = KafkaProducer(
-    bootstrap_servers=KAFKA_HOST,
-    value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-)
+
+def get_kafka_producer():
+    kafka_producer = KafkaProducer(
+        bootstrap_servers=KAFKA_HOST,
+        value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+    )
+    return kafka_producer
 
 
 async def consume_kafka_messages():
+
+    if not KAFKA_HOST:
+        return
+
     consumer = AIOKafkaConsumer(
         KAFKA_TOPIC,
         bootstrap_servers=KAFKA_HOST,

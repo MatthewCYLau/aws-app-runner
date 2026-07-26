@@ -19,7 +19,7 @@ from api.config.constants import (
     STOCKS_PNL,
 )
 from api.config.metrics import OPEN_POSITIONS_GAUGE
-from api.config.kafka_setup import KAFKA_TOPIC, kafka_producer
+from api.config.kafka_setup import KAFKA_HOST, KAFKA_TOPIC, get_kafka_producer
 from api.utils.date_util import validate_date_string
 import yfinance as yf
 import pandas as pd
@@ -117,7 +117,8 @@ def insert_stock_position(position_data: PositionBase):
         )
         OPEN_POSITIONS_GAUGE.inc()
 
-        if os.getenv("KAFKA_HOST"):
+        if KAFKA_HOST:
+            kafka_producer = get_kafka_producer()
             event_data = {
                 "event_type": "NEW_POSITION",
                 "timestamp": timestamp,

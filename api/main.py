@@ -190,22 +190,17 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(batch_update_pnl, "interval", minutes=1)
     scheduler.start()
     sqs_task = asyncio.create_task(poll_sqs_queue())
-
-    if os.getenv("KAFKA_HOST"):
-        kafka_task = asyncio.create_task(consume_kafka_messages())
+    kafka_task = asyncio.create_task(consume_kafka_messages())
 
     yield
 
     logger.info("Shutting down background tasks...")
     scheduler.shutdown()
-
-    if os.getenv("KAFKA_HOST"):
-        kafka_task.cancel()
+    kafka_task.cancel()
     sqs_task.cancel()
     try:
         await sqs_task
-        if os.getenv("KAFKA_HOST"):
-            await asyncio.gather(kafka_task, return_exceptions=True)
+        await asyncio.gather(kafka_task, return_exceptions=True)
     except asyncio.CancelledError:
         logger.error("SQS Polling task successfully stopped.")
 
