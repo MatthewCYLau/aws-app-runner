@@ -10,3 +10,4 @@ certs
 venv
 __pycache__
 *.tgz
+.env

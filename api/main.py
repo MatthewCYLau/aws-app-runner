@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+
+load_dotenv(".env")
+
 import asyncio
 from decimal import Decimal
 import platform
@@ -30,6 +34,7 @@ from api.config.database import DB_HOST, Base, engine
 from api.config.exception import NotFoundException
 from api.config.logging import get_logger
 from api.config.metrics import AWS_TRANSACTION_COUNTER, TX_LATENCY
+from api.config.kafka_setup import consume_kafka_messages
 from api.position.schemas import UpdatePositionMessageBase
 from api.product.views import router as product_router
 from api.position.views import batch_update_pnl, router as position_router
@@ -185,15 +190,17 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(batch_update_pnl, "interval", minutes=1)
     scheduler.start()
     sqs_task = asyncio.create_task(poll_sqs_queue())
+    kafka_task = asyncio.create_task(consume_kafka_messages())
 
     yield
 
     logger.info("Shutting down background tasks...")
     scheduler.shutdown()
-
+    kafka_task.cancel()
     sqs_task.cancel()
     try:
         await sqs_task
+        await asyncio.gather(kafka_task, return_exceptions=True)
     except asyncio.CancelledError:
         logger.error("SQS Polling task successfully stopped.")
 

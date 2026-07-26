@@ -19,6 +19,7 @@ from api.config.constants import (
     STOCKS_PNL,
 )
 from api.config.metrics import OPEN_POSITIONS_GAUGE
+from api.config.kafka_setup import KAFKA_TOPIC, kafka_producer
 from api.utils.date_util import validate_date_string
 import yfinance as yf
 import pandas as pd
@@ -115,6 +116,20 @@ def insert_stock_position(position_data: PositionBase):
             f"Successfully inserted {position_data.stock_symbol} at {timestamp}"
         )
         OPEN_POSITIONS_GAUGE.inc()
+
+        if os.getenv("KAFKA_HOST"):
+            event_data = {
+                "event_type": "NEW_POSITION",
+                "timestamp": timestamp,
+                "stock_symbol": position_data.stock_symbol,
+                "open_price": round(position_data.open_price, 2),
+            }
+
+            kafka_producer.send(KAFKA_TOPIC, value=event_data)
+            logger.info(
+                f"Sent: {event_data['event_type']} for {position_data.stock_symbol}"
+            )
+
         return response
     except Exception as e:
         logger.error(f"Error inserting record: {e}")
