@@ -1,6 +1,8 @@
 import csv
 import io
 import os
+from queue import Queue
+import threading
 import uuid
 import asyncio
 import boto3
@@ -11,6 +13,7 @@ from collections import defaultdict
 from itertools import islice
 from httpx import AsyncClient, HTTPStatusError
 from matplotlib import pyplot as plt
+import requests
 from api.config.constants import (
     POSITIONS_CSV_COLUMNS,
     POSITIONS_PNL_AGGREGATE,
@@ -355,6 +358,37 @@ async def get_shock_percent_normal():
     return pnl_shock_percent_normal
 
 
+def fetch_data(url, queue):
+    response = requests.get(url, timeout=5)
+    data = response.json()
+    queue.put({"status": response.status_code, "data": data})
+
+
+def get_random_number_threads():
+    results_queue = Queue()
+    threads = []
+    base_url = "https://jsonplaceholder.typicode.com/posts"
+
+    for _ in range(1, 4):
+        thread = threading.Thread(target=fetch_data, args=(base_url, results_queue))
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    results = []
+    while not results_queue.empty():
+        results.append(results_queue.get())
+
+    logger.info(f"Collected {len(results)} responses.")
+
+    random_res_data = random.choice(results)
+    random_id = random.choice(random_res_data["data"])["id"]
+
+    return random_id
+
+
 async def get_random_number(async_client: AsyncClient, max_try: int = 3):
     for _ in range(max_try):
         try:
@@ -433,6 +467,9 @@ async def batch_update_pnl():
 
         random_number = statistics.mean(res)
         logger.info(f"Random number from async client: {random_number}")
+
+        random_number_thread = get_random_number_threads()
+        logger.info(f"Random number from threading: {random_number_thread}")
 
         tasks = [
             get_shock_percent_normal()
