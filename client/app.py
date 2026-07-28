@@ -172,6 +172,10 @@ if not positions_pnl_aggregate_df.empty:
         "Stock symbol"
     )["Total PnL"].transform("mean")
 
+    positions_pnl_aggregate_df["Stock symbol"] = positions_pnl_aggregate_df[
+        "Stock symbol"
+    ].str.upper()
+
     positions_pnl_aggregate_df = positions_pnl_aggregate_df.set_index("Position Id")
     st.subheader("Aggregate PnL by postion ID")
     st.dataframe(positions_pnl_aggregate_df.tail(10))
