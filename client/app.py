@@ -125,6 +125,8 @@ def plot_position_pnl_timeseries(df: pd.DataFrame, position_id: str):
 
     if len(position_df):
         shocked_pnl_df = position_df[["Shocked PnL"]]
+        shocked_pnl_df.index = pd.to_datetime(shocked_pnl_df.index)
+        logging.info(shocked_pnl_df.index)
 
         stale_mask = (
             shocked_pnl_df["Shocked PnL"].shift(-1) == shocked_pnl_df["Shocked PnL"]
@@ -175,6 +177,8 @@ if not positions_pnl_aggregate_df.empty:
     positions_pnl_aggregate_df["Stock symbol"] = positions_pnl_aggregate_df[
         "Stock symbol"
     ].str.upper()
+
+    positions_pnl_aggregate_df.columns = positions_pnl_aggregate_df.columns.str.strip()
 
     positions_pnl_aggregate_df = positions_pnl_aggregate_df.set_index("Position Id")
     st.subheader("Aggregate PnL by postion ID")
