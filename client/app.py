@@ -126,7 +126,6 @@ def plot_position_pnl_timeseries(df: pd.DataFrame, position_id: str):
     if len(position_df):
         shocked_pnl_df = position_df[["Shocked PnL"]]
         shocked_pnl_df.index = pd.to_datetime(shocked_pnl_df.index)
-        logging.info(shocked_pnl_df.index)
 
         stale_mask = (
             shocked_pnl_df["Shocked PnL"].shift(-1) == shocked_pnl_df["Shocked PnL"]
@@ -134,6 +133,19 @@ def plot_position_pnl_timeseries(df: pd.DataFrame, position_id: str):
         stale_data_df = shocked_pnl_df.loc[stale_mask]
 
         logging.info(f"Stale data count: {len(stale_data_df)}")
+
+        future_dates = pd.date_range(
+            start=shocked_pnl_df.index[-1] + pd.Timedelta(minutes=1),
+            periods=3,
+            freq="min",
+        )
+        extended_index = shocked_pnl_df.index.append(future_dates)
+
+        shocked_pnl_df = shocked_pnl_df.reindex(extended_index)
+
+        shocked_pnl_df["Shocked PnL"] = shocked_pnl_df["Shocked PnL"].interpolate(
+            method="slinear", fill_value="extrapolate"
+        )
 
         st.subheader(f"{position_id} Shocked PnL")
         st.line_chart(shocked_pnl_df)
