@@ -36,7 +36,7 @@ import numpy as np
 from api.config.exception import BadRequestException, NotFoundException
 from api.config.constants import S3_BUCKET_NAME
 from api.config.logging import get_logger
-from api.position.schemas import PositionBase, UpdatePositiontRequest
+from api.position.schemas import PositionBase, ReadPickleRequest, UpdatePositiontRequest
 from api.utils.dynamodb_util import get_dynamodb_table_client
 from api.utils.stock_util import fetch_live_snapshots
 from api.utils.string_util import generate_filename_prefix
@@ -651,3 +651,17 @@ def upload_stocks_pnl_pickle():
         return {"file_key": pickle_file_key, "presigned_url": url}
     except Exception as e:
         logger.error(f"Error uploading: {e}")
+
+
+@router.post("/read-pickle")
+def read_stocks_pnl_from_pickle(read_pickle_data: ReadPickleRequest):
+
+    s3_client = boto3.client("s3")
+    pickle_file_key = read_pickle_data.file_key
+
+    try:
+        response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=pickle_file_key)
+        df = pd.read_pickle(io.BytesIO(response["Body"].read()))
+        return df.to_dict(orient="records")
+    except Exception as e:
+        logger.error(f"Error reading pickle from S3: {e}")

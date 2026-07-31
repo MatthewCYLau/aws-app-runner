@@ -60,3 +60,7 @@ class UpdatePositionMessageBase(BaseModel):
                 f"{info.field_name} {position_id} is not a valid position ID"
             )
         return position_id
+
+
+class ReadPickleRequest(BaseModel):
+    file_key: str
