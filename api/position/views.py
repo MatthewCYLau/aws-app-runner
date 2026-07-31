@@ -39,6 +39,7 @@ from api.config.logging import get_logger
 from api.position.schemas import PositionBase, UpdatePositiontRequest
 from api.utils.dynamodb_util import get_dynamodb_table_client
 from api.utils.stock_util import fetch_live_snapshots
+from api.utils.string_util import generate_filename_prefix
 from api.utils.utils import custom_get_random_int
 
 logger = get_logger(__name__)
@@ -603,3 +604,50 @@ async def upload_csv(upload_file: UploadFile = File(...)):
         )
     finally:
         await upload_file.close()
+
+
+@router.post("/upload-pickle")
+def upload_stocks_pnl_pickle():
+
+    items = []
+    stocks_pnl_table = get_dynamodb_table_client(STOCKS_PNL)
+    response = stocks_pnl_table.scan()
+    items.extend(response.get("Items", []))
+
+    while "LastEvaluatedKey" in response:
+        response = stocks_pnl_table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+        items.extend(response.get("Items", []))
+
+    df = pd.DataFrame(items)
+
+    if df.empty:
+        raise NotFoundException("No positions found.")
+
+    df["TotalPnL"] = df["TotalPnL"].apply(
+        lambda x: float(x) if isinstance(x, Decimal) else x
+    )
+
+    df = df.sort_values(by="TotalPnL", ascending=False)
+    buffer = io.BytesIO()
+    df.to_pickle(buffer)
+
+    s3_client = boto3.client("s3")
+    pickle_file_key = f"pickle/{generate_filename_prefix()}_pnl.pkl"
+
+    try:
+        s3_client.put_object(
+            Bucket=S3_BUCKET_NAME,
+            Key=pickle_file_key,
+            Body=buffer.getvalue(),
+        )
+        logger.info(
+            f"Successfully uploaded pickle to s3://{S3_BUCKET_NAME}/{pickle_file_key}"
+        )
+        url = s3_client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": S3_BUCKET_NAME, "Key": pickle_file_key},
+            ExpiresIn=86400,
+        )
+        return {"file_key": pickle_file_key, "presigned_url": url}
+    except Exception as e:
+        logger.error(f"Error uploading: {e}")
