@@ -36,3 +36,16 @@ resource "aws_ecr_repository" "helm_chart" {
     { Name = "App helm chart private ECR" }
   )
 }
+
+resource "aws_ecr_repository" "simple_dotnet_worker" {
+  name                 = "simple-dotnet-worker"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = false
+  }
+  tags = merge(
+    local.common_tags,
+    { Name = "Simple Dotnet Worker private ECR" }
+  )
+}
