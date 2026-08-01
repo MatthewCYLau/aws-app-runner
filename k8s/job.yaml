@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: simple-dotnet-worker
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: app-sa
+      containers:
+        - name: s3-worker
+          image: 830663695860.dkr.ecr.us-east-1.amazonaws.com/simple-dotnet-worker:latest

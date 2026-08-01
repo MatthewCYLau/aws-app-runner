@@ -91,9 +91,31 @@ resource "aws_iam_policy" "s3_write_policy" {
   })
 }
 
+resource "aws_iam_policy" "s3_list_bucket" {
+  name        = "AllowS3ListBucket"
+  description = "Allows ECS task to list S3 bucket"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "s3:ListBucket"
+      ]
+      Resource = "${aws_s3_bucket.assets.arn}"
+    }]
+  })
+}
+
+
 resource "aws_iam_role_policy_attachment" "task_s3_attach" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.s3_write_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "task_s3_list_attach" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.s3_list_bucket.arn
 }
 
 resource "aws_iam_policy" "aws_app_sqs_policy" {
