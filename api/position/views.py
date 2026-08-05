@@ -9,6 +9,7 @@ import boto3
 import statistics
 import random
 import json
+import heapq
 from collections import defaultdict
 from itertools import islice
 from httpx import AsyncClient, HTTPStatusError
@@ -65,6 +66,15 @@ def get_stock_current_price(stock_symbol: str):
     return round(ticker.fast_info["last_price"], 2)
 
 
+def sort_position_values(position_values):
+    min_heap = []
+    for value in position_values:
+        heapq.heappush(min_heap, value)
+
+    while min_heap:
+        yield heapq.heappop(min_heap)
+
+
 @router.get("/")
 def get_stock_positions(startDate: str = None, endDate: str = None):
 
@@ -91,6 +101,11 @@ def get_stock_positions(startDate: str = None, endDate: str = None):
     while "LastEvaluatedKey" in response:
         response = positions_table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
         items.extend(response.get("Items", []))
+
+    sorted_position_values = list(
+        sort_position_values([float(i.get("Value")) for i in items])
+    )
+    logger.info(f"Position values: {sorted_position_values}")
 
     return items
 
