@@ -71,8 +71,9 @@ def sort_position_values(position_values):
     for value in position_values:
         heapq.heappush(min_heap, value)
 
-    large_value = heapq.nlargest(1, min_heap)
-    logger.info(f"Largest value: {large_value[0]}")
+    if min_heap:
+        large_value = heapq.nlargest(1, min_heap)
+        logger.info(f"Largest value: {large_value[0]}")
 
     while min_heap:
         yield heapq.heappop(min_heap)
