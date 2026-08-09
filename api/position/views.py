@@ -111,6 +111,12 @@ def get_stock_positions(startDate: str = None, endDate: str = None):
     )
     logger.info(f"Position values: {sorted_position_values}")
 
+    sorted_positions = sorted(items, key=lambda x: x.get("Value"), reverse=True)
+
+    logger.info(
+        f"Position values sorted: {[float(i.get('Value')) for i in sorted_positions]}"
+    )
+
     return items
 
 
