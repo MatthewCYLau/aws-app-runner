@@ -37,7 +37,12 @@ import numpy as np
 from api.config.exception import BadRequestException, NotFoundException
 from api.config.constants import S3_BUCKET_NAME
 from api.config.logging import get_logger
-from api.position.schemas import PositionBase, ReadPickleRequest, UpdatePositiontRequest
+from api.position.schemas import (
+    PositionBase,
+    PositionPrinter,
+    ReadPickleRequest,
+    UpdatePositiontRequest,
+)
 from api.utils.dynamodb_util import get_dynamodb_table_client
 from api.utils.stock_util import fetch_live_snapshots
 from api.utils.string_util import generate_filename_prefix
@@ -113,9 +118,8 @@ def get_stock_positions(startDate: str = None, endDate: str = None):
 
     sorted_positions = sorted(items, key=lambda x: x.get("Value"), reverse=True)
 
-    logger.info(
-        f"Position values sorted: {[float(i.get('Value')) for i in sorted_positions]}"
-    )
+    positions_printer = PositionPrinter(sorted_positions)
+    positions_printer.print_positions()
 
     return items
 

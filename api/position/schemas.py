@@ -1,5 +1,5 @@
 from typing import Optional
-
+from abc import ABC, abstractmethod
 from pydantic import BaseModel, field_validator, ValidationInfo, model_validator
 from api.config.logging import get_logger
 from api.utils.dynamodb_util import validate_position
@@ -64,3 +64,22 @@ class UpdatePositionMessageBase(BaseModel):
 
 class ReadPickleRequest(BaseModel):
     file_key: str
+
+
+class PositionPrinterABC(ABC):
+
+    @classmethod
+    @abstractmethod
+    def print_positions(self):
+        pass
+
+
+class PositionPrinter(PositionPrinterABC):
+
+    def __init__(self, positions):
+        self.positions = positions
+
+    def print_positions(self):
+        logger.info(
+            f"Position values sorted: {[float(i.get('Value')) for i in self.positions]}"
+        )
