@@ -413,7 +413,7 @@ def get_random_number_threads():
 
     logger.info(f"Collected {len(results)} responses.")
 
-    random_res_data = random.choice(results)
+    random_res_data = random.choice(random.sample(results, len(results) - 1))
     random_id = random.choice(random_res_data["data"])["id"]
 
     return random_id
