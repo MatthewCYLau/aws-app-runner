@@ -20,7 +20,8 @@ resource "aws_iam_role" "github_actions_role" {
           StringLike = {
             "token.actions.githubusercontent.com:sub" : [
               "repo:MatthewCYLau/aws-app-runner:*",
-              "repo:MatthewCYLau@25493955/simple-dotnet-worker@1319235591:*"
+              "repo:MatthewCYLau@25493955/simple-dotnet-worker@1319235591:*",
+              "repo:MatthewCYLau@25493955/simple-spring-boot-worker@1350482663:*"
             ]
           }
         }
