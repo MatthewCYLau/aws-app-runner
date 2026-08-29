@@ -49,3 +49,16 @@ resource "aws_ecr_repository" "simple_dotnet_worker" {
     { Name = "Simple Dotnet Worker private ECR" }
   )
 }
+
+resource "aws_ecr_repository" "simple_spring_boot_worker" {
+  name                 = "simple-spring-boot-worker"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = false
+  }
+  tags = merge(
+    local.common_tags,
+    { Name = "Simple Spring Boot Worker private ECR" }
+  )
+}
