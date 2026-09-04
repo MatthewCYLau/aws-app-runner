@@ -23,3 +23,12 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "assets_encryption
     }
   }
 }
+
+resource "aws_s3_bucket" "data_sink" {
+  bucket_prefix = "data-sink"
+  force_destroy = true
+  tags = merge(
+    local.common_tags,
+    { Name = "AWS App assets" }
+  )
+}
