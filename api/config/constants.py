@@ -6,6 +6,7 @@ STOCK_TRADING_POSITIONS_TABLE = "stock_trading_positions"
 POSITIONS_PNL_AGGREGATE = "positions_pnl_aggregate"
 POSITIONS_PNL_TIMESERIES = "positions_pnl_timeseries"
 STOCKS_PNL = "stocks_pnl"
+STREAM_NAME = "trades-stream"
 S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
 SQS_QUEUE_URL = os.environ.get(
     "SQS_QUEUE_URL",
