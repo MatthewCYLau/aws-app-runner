@@ -25,7 +25,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "assets_encryption
 }
 
 resource "aws_s3_bucket" "data_sink" {
-  bucket = "aws-app-runner-data-sink"
+  bucket        = "aws-app-runner-data-sink"
   force_destroy = true
   tags = merge(
     local.common_tags,

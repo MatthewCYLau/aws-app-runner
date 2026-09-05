@@ -229,6 +229,28 @@ resource "aws_iam_role_policy_attachment" "ecs_dynamodb_attachment" {
   policy_arn = aws_iam_policy.ecs_dynamodb_access.arn
 }
 
+data "aws_iam_policy_document" "kinesis_rw_policy" {
+  statement {
+    actions = [
+      "kinesis:PutRecord"
+    ]
+    resources = [
+      aws_kinesis_stream.trade_stream.arn
+    ]
+  }
+}
+
+resource "aws_iam_policy" "kinesis_access" {
+  name        = "ECSKinesisAccess"
+  description = "Allows ECS tasks to read and write to kinesis stream"
+  policy      = data.aws_iam_policy_document.kinesis_rw_policy.json
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_kinesis_attachment" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.kinesis_access.arn
+}
+
 resource "aws_iam_role" "lambda_pnl_role" {
   name = "pnl_aggregator_role"
 
