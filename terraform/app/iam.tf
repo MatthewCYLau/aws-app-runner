@@ -238,7 +238,8 @@ resource "aws_iam_role_policy_attachment" "ecs_dynamodb_attachment" {
 data "aws_iam_policy_document" "kinesis_rw_policy" {
   statement {
     actions = [
-      "kinesis:PutRecord"
+      "kinesis:PutRecord",
+      "kinesis:ListShards"
     ]
     resources = [
       aws_kinesis_stream.trade_stream.arn
