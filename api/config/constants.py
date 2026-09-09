@@ -8,6 +8,9 @@ POSITIONS_PNL_TIMESERIES = "positions_pnl_timeseries"
 STOCKS_PNL = "stocks_pnl"
 STREAM_NAME = "trades-stream"
 S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "aws-app-runner-assets")
+S3_DATA_SINK_BUCKET_NAME = os.environ.get(
+    "S3_DATA_SINK_BUCKET_NAME", "aws-app-runner-data-sink"
+)
 SQS_QUEUE_URL = os.environ.get(
     "SQS_QUEUE_URL",
     "https://sqs.us-east-1.amazonaws.com/830663695860/aws-app-task-queue",

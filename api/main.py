@@ -39,6 +39,7 @@ from api.position.schemas import UpdatePositionMessageBase
 from api.product.views import router as product_router
 from api.position.views import batch_update_pnl, router as position_router
 from api.stream.push import push_trade_to_stream
+from api.stream.consume import consume_stream
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from api.utils.dynamodb_util import get_dynamodb_table_client
@@ -190,6 +191,7 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(receive_sqs_messages, "interval", minutes=1)
     scheduler.add_job(batch_update_pnl, "interval", minutes=1)
     scheduler.add_job(push_trade_to_stream, "interval", minutes=1)
+    scheduler.add_job(consume_stream, "interval", minutes=1)
     scheduler.start()
     sqs_task = asyncio.create_task(poll_sqs_queue())
     kafka_task = asyncio.create_task(consume_kafka_messages())
