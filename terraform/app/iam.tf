@@ -240,7 +240,8 @@ data "aws_iam_policy_document" "kinesis_rw_policy" {
     actions = [
       "kinesis:PutRecord",
       "kinesis:ListShards",
-      "kinesis:GetShardIterator"
+      "kinesis:GetShardIterator",
+      "kinesis:GetRecords"
     ]
     resources = [
       aws_kinesis_stream.trade_stream.arn
