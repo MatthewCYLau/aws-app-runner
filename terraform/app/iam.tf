@@ -86,7 +86,10 @@ resource "aws_iam_policy" "s3_write_policy" {
         "s3:PutObject",
         "s3:GetObject"
       ]
-      Resource = "${aws_s3_bucket.assets.arn}/*"
+      Resource = [
+        "${aws_s3_bucket.assets.arn}/*",
+        "${aws_s3_bucket.data_sink.arn}/*"
+      ]
     }]
   })
 }
@@ -102,7 +105,10 @@ resource "aws_iam_policy" "s3_list_bucket" {
       Action = [
         "s3:ListBucket"
       ]
-      Resource = "${aws_s3_bucket.assets.arn}"
+      Resource = [
+        "${aws_s3_bucket.assets.arn}/*",
+        "${aws_s3_bucket.data_sink.arn}/*"
+      ]
     }]
   })
 }
@@ -187,7 +193,7 @@ resource "aws_iam_policy" "s3_list_policy" {
       {
         Action   = ["s3:ListBucket", "s3:GetBucketLocation"]
         Effect   = "Allow"
-        Resource = aws_s3_bucket.assets.arn
+        Resource = [aws_s3_bucket.assets.arn, aws_s3_bucket.data_sink.arn]
       },
     ]
   })
@@ -301,7 +307,6 @@ resource "aws_iam_role_policy" "lambda_policy" {
   })
 }
 
-/*
 resource "aws_eks_pod_identity_association" "s3_access" {
   cluster_name    = module.eks.cluster_name
   namespace       = "dev"
@@ -340,4 +345,3 @@ resource "aws_eks_pod_identity_association" "cloudwatch_observability" {
   service_account = "cloudwatch-agent"
   role_arn        = aws_iam_role.cloudwatch_observability.arn
 }
-*/
