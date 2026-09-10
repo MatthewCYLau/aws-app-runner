@@ -171,7 +171,7 @@ resource "aws_vpc_endpoint_route_table_association" "private_s3" {
 
 # For learning purpose only - Network ACL Definition
 resource "aws_network_acl" "learning_nacl" {
-  vpc_id     = aws_vpc.main.id
+  vpc_id     = aws_vpc.this.id
   subnet_ids = [aws_subnet.public[0].id]
 
   # --- INBOUND RULES ---
