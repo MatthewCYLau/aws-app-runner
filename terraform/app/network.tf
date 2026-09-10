@@ -168,3 +168,48 @@ resource "aws_vpc_endpoint_route_table_association" "private_s3" {
   vpc_endpoint_id = aws_vpc_endpoint.s3_gateway.id
   route_table_id  = element(aws_route_table.private.*.id, count.index)
 }
+
+# For learning purpose only - Network ACL Definition
+resource "aws_network_acl" "learning_nacl" {
+  vpc_id     = aws_vpc.main.id
+  subnet_ids = [aws_subnet.public[0].id]
+
+  # --- INBOUND RULES ---
+
+  # Allow inbound SSH (TCP 22)
+  ingress {
+    protocol   = "tcp"
+    rule_no    = 100
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 22
+    to_port    = 22
+  }
+
+  # Allow inbound HTTP (TCP 80)
+  ingress {
+    protocol   = "tcp"
+    rule_no    = 110
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 80
+    to_port    = 80
+  }
+
+  # --- OUTBOUND RULES ---
+
+  # Allow return traffic to ephemeral ports (REQUIRED for response traffic)
+  egress {
+    protocol   = "tcp"
+    rule_no    = 100
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 1024
+    to_port    = 65535
+  }
+
+  tags = merge(
+    local.common_tags,
+    { Name = "aws-ecs-app-acl" }
+  )
+}
