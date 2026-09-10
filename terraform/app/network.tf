@@ -196,9 +196,19 @@ resource "aws_network_acl" "learning_nacl" {
     to_port    = 80
   }
 
+  # Allow return response traffic from external servers on ephemeral ports
+  ingress {
+    protocol   = "tcp"
+    rule_no    = 120
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 1024
+    to_port    = 65535
+  }
+
   # --- OUTBOUND RULES ---
 
-  # Allow return traffic to ephemeral ports (REQUIRED for response traffic)
+  # Allow return response traffic to inbound clients on ephemeral ports
   egress {
     protocol   = "tcp"
     rule_no    = 100
@@ -206,6 +216,26 @@ resource "aws_network_acl" "learning_nacl" {
     cidr_block = "0.0.0.0/0"
     from_port  = 1024
     to_port    = 65535
+  }
+
+  # Allow outbound HTTP (for repository package updates)
+  egress {
+    protocol   = "tcp"
+    rule_no    = 110
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 80
+    to_port    = 80
+  }
+
+  # Allow outbound HTTPS (for secure repository package updates)
+  egress {
+    protocol   = "tcp"
+    rule_no    = 120
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 443
+    to_port    = 443
   }
 
   tags = merge(
