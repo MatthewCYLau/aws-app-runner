@@ -2,6 +2,7 @@ import json
 import random
 import time
 import boto3
+import numpy as np
 from api.config.constants import AWS_REGION, STREAM_NAME
 from api.config.logging import get_logger
 
@@ -12,10 +13,20 @@ TICKERS = ["EURUSD", "GBPUSD", "US10Y"]
 logger = get_logger(__name__)
 
 
+def generate_random_five_digit_int():
+    digits = np.concatenate(
+        [np.random.randint(1, 10, size=1), np.random.randint(0, 10, size=4)]
+    )
+
+    powers_of_ten = np.array([10_000, 1_000, 100, 10, 1])
+
+    return int(np.sum(digits * powers_of_ten))
+
+
 def generate_trade():
     book_id = random.choice(BOOK_IDS)
     return {
-        "trade_id": f"TRD-{random.randint(10000, 99999)}",
+        "trade_id": f"TRD-{generate_random_five_digit_int()}",
         "book_id": book_id,
         "ticker": random.choice(TICKERS),
         "quantity": random.choice([100000, -50000, 250000, -100000]),
