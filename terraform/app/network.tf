@@ -22,7 +22,7 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_subnet" "private" {
-  count = 4
+  count = 5
   # index 10 -> 10.0.10.0/24
   # index 11 -> 10.0.11.0/24
   # index 12 -> 10.0.12.0/24
@@ -30,7 +30,7 @@ resource "aws_subnet" "private" {
   cidr_block              = cidrsubnet(aws_vpc.this.cidr_block, 8, count.index + 10)
   availability_zone       = data.aws_availability_zones.available_zones.names[count.index % 2]
   vpc_id                  = aws_vpc.this.id
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false
 
   tags = {
     Name                              = "AWS ECS App Private Subnet ${count.index + 1}"
@@ -88,14 +88,14 @@ resource "aws_route_table" "public" {
 
 resource "aws_route_table_association" "public" {
   count          = 2
-  subnet_id      = element(aws_subnet.public.*.id, count.index)
-  route_table_id = element(aws_route_table.public.*.id, count.index)
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public[count.index].id
 }
 
 resource "aws_route_table_association" "rds_public" {
   count          = 2
-  subnet_id      = element(aws_subnet.rds_public.*.id, count.index)
-  route_table_id = element(aws_route_table.public.*.id, count.index)
+  subnet_id      = aws_subnet.rds_public[count.index].id
+  route_table_id = aws_route_table.public[count.index].id
 }
 
 resource "aws_eip" "gateway" {
@@ -106,17 +106,19 @@ resource "aws_eip" "gateway" {
 
 resource "aws_nat_gateway" "gateway" {
   count         = 2
-  subnet_id     = element(aws_subnet.public.*.id, count.index)
-  allocation_id = element(aws_eip.gateway.*.id, count.index)
+  subnet_id     = aws_subnet.public[count.index].id
+  allocation_id = aws_eip.gateway[count.index].id
+
+  depends_on = [aws_internet_gateway.gateway]
 }
 
 resource "aws_route_table" "private" {
-  count  = 4
+  count  = 2
   vpc_id = aws_vpc.this.id
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = element(aws_nat_gateway.gateway.*.id, count.index)
+    nat_gateway_id = aws_nat_gateway.gateway[count.index].id
   }
 
   tags = {
@@ -125,9 +127,9 @@ resource "aws_route_table" "private" {
 }
 
 resource "aws_route_table_association" "private" {
-  count          = 4
-  subnet_id      = element(aws_subnet.private.*.id, count.index)
-  route_table_id = element(aws_route_table.private.*.id, count.index)
+  count          = 5
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private[count.index % 2].id
 }
 
 resource "aws_route_table" "rds" {
@@ -146,8 +148,8 @@ resource "aws_route_table" "rds" {
 
 resource "aws_route_table_association" "rds" {
   count          = 2
-  subnet_id      = element(aws_subnet.rds.*.id, count.index)
-  route_table_id = element(aws_route_table.rds.*.id, count.index)
+  subnet_id      = aws_subnet.rds[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
 }
 
 data "aws_region" "current" {}
@@ -166,10 +168,11 @@ resource "aws_vpc_endpoint" "s3_gateway" {
 resource "aws_vpc_endpoint_route_table_association" "private_s3" {
   count           = 2
   vpc_endpoint_id = aws_vpc_endpoint.s3_gateway.id
-  route_table_id  = element(aws_route_table.private.*.id, count.index)
+  route_table_id  = aws_route_table.private[count.index].id
 }
 
 # For learning purpose only - Network ACL Definition
+/*
 resource "aws_network_acl" "learning_nacl" {
   vpc_id     = aws_vpc.this.id
   subnet_ids = [aws_subnet.public[0].id]
@@ -243,3 +246,4 @@ resource "aws_network_acl" "learning_nacl" {
     { Name = "aws-ecs-app-acl" }
   )
 }
+*/
