@@ -211,7 +211,12 @@ while "LastEvaluatedKey" in response:
 positions_timeseries_df = pd.DataFrame(positions_timeseries_data)
 
 if not positions_timeseries_df.empty:
+
     positions_timeseries_df = positions_timeseries_df.rename(columns=columns_rename_map)
+
+    mask = ~positions_timeseries_df["Stock symbol"].isin(["FOO", "BAR"])
+    positions_timeseries_df = positions_timeseries_df.loc[mask]
+
     positions_timeseries_df = positions_timeseries_df.set_index("Created at")
     positions_timeseries_df["Shocked PnL"] = pd.to_numeric(
         positions_timeseries_df["Shocked PnL"]
