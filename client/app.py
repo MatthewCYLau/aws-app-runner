@@ -22,6 +22,9 @@ st.sidebar.header("User Input")
 stock_sectors = pd.Series(["Tech", "Finance"], index=["AAPL", "JPM"])
 positions_data = {}
 
+today_utc = pd.Timestamp.now(tz="UTC").normalize()
+future = today_utc + pd.Timedelta(days=4)
+
 
 def plot_position_daily_pnl(
     position_id: str,
@@ -171,6 +174,12 @@ if not positions_pnl_aggregate_df.empty:
     positions_pnl_aggregate_df = positions_pnl_aggregate_df.rename(
         columns=columns_rename_map
     )
+    positions_pnl_aggregate_df["Last modified"] = pd.to_datetime(
+        positions_pnl_aggregate_df["Last modified"], errors="coerce"
+    )
+
+    mask = positions_pnl_aggregate_df["Last modified"].between(today_utc, future)
+    positions_pnl_aggregate_df = positions_pnl_aggregate_df.loc[mask]
 
     positions_pnl_aggregate_df["Sector"] = positions_pnl_aggregate_df[
         "Stock symbol"
