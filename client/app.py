@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+import numpy as np
 import yfinance as yf
 import streamlit as st
 import pandas as pd
@@ -200,6 +201,10 @@ if not positions_pnl_aggregate_df.empty:
     ].str.upper()
 
     positions_pnl_aggregate_df.columns = positions_pnl_aggregate_df.columns.str.strip()
+
+    positions_pnl_aggregate_df["Pnl shock label"] = np.where(
+        positions_pnl_aggregate_df["Pnl shock percent"] > 0, "High", "Low"
+    )
 
     positions_pnl_aggregate_df = positions_pnl_aggregate_df.set_index("Position Id")
     st.subheader("Aggregate PnL by postion ID")
