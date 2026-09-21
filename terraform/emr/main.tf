@@ -23,10 +23,31 @@ resource "aws_subnet" "private" {
   }
 }
 
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "${var.environment}-emr-private-rt"
+  }
+}
+
+resource "aws_route_table_association" "private" {
+  count          = 2
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
+}
+
 resource "aws_security_group" "emr_serverless_sg" {
   name        = "${var.environment}-emr-serverless-sg"
-  description = "Security group for EMR Serverless workers"
+  description = "Security group for EMR Serverless workers and VPC Endpoints"
   vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port = 443
+    to_port   = 443
+    protocol  = "tcp"
+    self      = true
+  }
 
   egress {
     from_port   = 0
@@ -44,6 +65,24 @@ resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${var.aws_region}.s3"
   vpc_endpoint_type = "Gateway"
+  route_table_ids   = [aws_route_table.private.id]
+  tags = {
+    Name = "${var.environment}-emr-s3-vpc-endpoint"
+  }
+}
+
+resource "aws_vpc_endpoint" "cloudwatch_logs" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.logs"
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
+
+  subnet_ids         = aws_subnet.private[*].id
+  security_group_ids = [aws_security_group.emr_serverless_sg.id]
+
+  tags = {
+    Name = "${var.environment}-emr-cw-logs-vpc-endpoint"
+  }
 }
 
 resource "aws_s3_bucket" "emr_data_lake" {
@@ -61,14 +100,13 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "emr_s3_encryption
   }
 }
 
-/*
 resource "aws_s3_object" "pyspark_script" {
   bucket = aws_s3_bucket.emr_data_lake.id
   key    = "scripts/risk_pnl_job.py"
   source = "${path.module}/scripts/risk_pnl_job.py"
   etag   = filemd5("${path.module}/scripts/risk_pnl_job.py")
 }
-*/
+
 
 resource "aws_iam_role" "emr_serverless_job_role" {
   name = "${var.environment}-emr-serverless-execution-role"
@@ -95,6 +133,7 @@ resource "aws_iam_policy" "emr_serverless_s3_policy" {
     Version = "2012-10-17"
     Statement = [
       {
+        Sid    = "S3ReadAndList"
         Effect = "Allow"
         Action = [
           "s3:GetObject",
@@ -106,17 +145,25 @@ resource "aws_iam_policy" "emr_serverless_s3_policy" {
         ]
       },
       {
+        Sid    = "S3WriteAndMultipart"
         Effect = "Allow"
         Action = [
           "s3:PutObject",
-          "s3:DeleteObject"
+          "s3:DeleteObject",
+          "s3:AbortMultipartUpload",
+          "s3:ListMultipartUploadParts"
         ]
         Resource = [
+          # Captures object writes within subdirectories
           "${aws_s3_bucket.emr_data_lake.arn}/output/*",
-          "${aws_s3_bucket.emr_data_lake.arn}/logs/*"
+          "${aws_s3_bucket.emr_data_lake.arn}/logs/*",
+          # Captures Hadoop directory marker objects (e.g. output_$folder$)
+          "${aws_s3_bucket.emr_data_lake.arn}/output*",
+          "${aws_s3_bucket.emr_data_lake.arn}/logs*"
         ]
       },
       {
+        Sid    = "GlueCatalogAccess"
         Effect = "Allow"
         Action = [
           "glue:GetDatabase",
@@ -133,9 +180,47 @@ resource "aws_iam_policy" "emr_serverless_s3_policy" {
   })
 }
 
+resource "aws_iam_policy" "emr_serverless_cw_policy" {
+  name        = "${var.environment}-emr-cw-access"
+  description = "Allows EMR Serverless job to manage log streams in CloudWatch"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams"
+        ]
+        # Describe operations require wildcard or log-group prefix permissions
+        Resource = [
+          "arn:aws:logs:${var.aws_region}:830663695860:log-group:*",
+          "arn:aws:logs:${var.aws_region}:830663695860:log-group::log-stream:*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = [
+          "${aws_cloudwatch_log_group.emr_serverless_logs.arn}:log-stream:*"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "attach_s3_policy" {
   role       = aws_iam_role.emr_serverless_job_role.name
   policy_arn = aws_iam_policy.emr_serverless_s3_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "attach_cw_policy" {
+  role       = aws_iam_role.emr_serverless_job_role.name
+  policy_arn = aws_iam_policy.emr_serverless_cw_policy.arn
 }
 
 resource "aws_cloudwatch_log_group" "emr_serverless_logs" {
@@ -147,7 +232,7 @@ resource "aws_emrserverless_application" "spark_app" {
   name          = "${var.environment}-risk-engine"
   release_label = var.emr_release_label
   type          = "spark"
-  architecture  = "ARM64" # Graviton processsors provide better performance/cost
+  architecture  = "ARM64"
 
   network_configuration {
     subnet_ids         = aws_subnet.private[*].id
@@ -193,7 +278,6 @@ resource "aws_emrserverless_application" "spark_app" {
         name   = "SPARK_EXECUTOR"
         values = ["STDOUT"]
       }
-
     }
 
     s3_monitoring_configuration {
