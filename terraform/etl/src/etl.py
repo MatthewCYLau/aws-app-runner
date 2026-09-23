@@ -39,6 +39,10 @@ def lambda_handler(event, context):
     # Flag high risk desks (where 95% VaR loss exceeds threshold)
     summary["risk_flag"] = summary["var_95"] < -50000
 
+    summary = summary.astype(
+        {"total_net_pnl": "float64", "total_exposure": "float64", "var_95": "float64"}
+    )
+
     # 3. Load: Write transformed summary to Processed S3 Bucket as Parquet
     parquet_buffer = io.BytesIO()
     summary.to_parquet(parquet_buffer, index=False)
