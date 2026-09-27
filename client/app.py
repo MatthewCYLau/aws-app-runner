@@ -175,9 +175,17 @@ if not positions_pnl_aggregate_df.empty:
     positions_pnl_aggregate_df = positions_pnl_aggregate_df.rename(
         columns=columns_rename_map
     )
+    positions_pnl_aggregate_df["Created at"] = pd.to_datetime(
+        positions_pnl_aggregate_df["Created at"], errors="coerce"
+    )
     positions_pnl_aggregate_df["Last modified"] = pd.to_datetime(
         positions_pnl_aggregate_df["Last modified"], errors="coerce"
     )
+
+    positions_pnl_aggregate_df["Time taken (mins)"] = (
+        positions_pnl_aggregate_df["Last modified"]
+        - positions_pnl_aggregate_df["Created at"]
+    ).dt.total_seconds() / 60
 
     mask = positions_pnl_aggregate_df["Last modified"].between(today_utc, future)
     positions_pnl_aggregate_df = positions_pnl_aggregate_df.loc[mask]
