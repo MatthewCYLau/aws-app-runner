@@ -218,6 +218,12 @@ if not positions_pnl_aggregate_df.empty:
     st.subheader("Aggregate PnL by postion ID")
     st.dataframe(positions_pnl_aggregate_df.tail(10))
 
+    groupby_date_df = positions_pnl_aggregate_df.groupby(
+        positions_pnl_aggregate_df["Created at"].dt.date
+    )[["Shocked PnL", "Stock symbol"]].sum()
+    st.subheader("PnL sum grouped by created date")
+    st.dataframe(groupby_date_df.tail(10))
+
 positions_pnl_timeseries_table = dynamodb.Table("positions_pnl_timeseries")
 
 positions_timeseries_data = []
