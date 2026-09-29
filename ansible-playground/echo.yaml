@@ -1,0 +1,9 @@
+---
+- name: Simple Echo Playbook
+  hosts: ec2_hosts
+  gather_facts: false # Disables gathering system info to skip module execution
+
+  tasks:
+    - name: Print a message
+      ansible.builtin.debug:
+        msg: "Hello from Ansible on EC2!"

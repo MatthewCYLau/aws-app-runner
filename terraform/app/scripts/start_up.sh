@@ -1,5 +1,5 @@
  #!/bin/bash
-sudo amazon-linux-extras install postgresql10 -y
+sudo amazon-linux-extras install postgresql10 python3.8 -y
 
 while [ ! -b /dev/sdh ]; do sleep 5; done
               

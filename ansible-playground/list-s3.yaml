@@ -1,0 +1,27 @@
+---
+- name: List S3 Bucket Objects using Ansible Native Module
+  hosts: ec2_hosts
+  gather_facts: false
+
+  vars:
+    s3_bucket_name: "aws-app-runner-assets"
+    ansible_python_interpreter: /usr/bin/python3.8
+
+  tasks:
+    - name: Ensure boto3 and botocore are installed in Python 3.8
+      ansible.builtin.command:
+        cmd: /usr/bin/python3.8 -m pip install boto3 botocore
+      changed_when: false
+
+    - name: Retrieve information about objects in S3 bucket
+      amazon.aws.s3_object_info:
+        bucket_name: "{{ s3_bucket_name }}"
+      register: s3_info
+
+    - name: Display raw output for verification
+      ansible.builtin.debug:
+        var: s3_info
+
+    - name: Display object keys safely
+      ansible.builtin.debug:
+        msg: "{{ (s3_info.s3_objects | default(s3_info.objects | default([]))) | map(attribute='key') | list }}"

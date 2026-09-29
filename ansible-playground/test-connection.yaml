@@ -1,0 +1,17 @@
+---
+- name: Validate EC2 Connection
+  hosts: my_ec2
+  gather_facts: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.8
+
+  tasks:
+    - name: Ping target host
+      ansible.builtin.ping:
+
+    - name: Display connection summary
+      ansible.builtin.debug:
+        msg: >-
+          Successfully connected to {{ inventory_hostname }} 
+          ({{ ansible_default_ipv4.address | default('N/A') }}) 
+          running {{ ansible_distribution | default('Linux') }} {{ ansible_distribution_version | default('') }}.
