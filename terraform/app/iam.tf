@@ -221,7 +221,9 @@ resource "aws_iam_policy" "s3_read_write_policy" {
         Sid    = "AllowObjectUploads"
         Effect = "Allow"
         Action = [
-          "s3:PutObject"
+          "s3:PutObject",
+          "s3:PutObjectAcl",
+          "s3:GetObject"  # Required for HeadObject checks and s3_object_info
         ]
         Resource = [
           "${aws_s3_bucket.assets.arn}/*",
