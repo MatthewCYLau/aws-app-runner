@@ -100,16 +100,30 @@ resource "aws_iam_policy" "s3_list_bucket" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
+    Statement = [
+      {
+        Sid    = "AllowBucketListing"
       Effect = "Allow"
       Action = [
         "s3:ListBucket"
       ]
+        Resource = [
+          aws_s3_bucket.assets.arn,
+          aws_s3_bucket.data_sink.arn
+        ]
+      },
+      {
+        Sid    = "AllowObjectUploads"
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject"
+        ]
       Resource = [
         "${aws_s3_bucket.assets.arn}/*",
         "${aws_s3_bucket.data_sink.arn}/*"
       ]
-    }]
+      }
+    ]
   })
 }
 

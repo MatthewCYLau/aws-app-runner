@@ -1,0 +1,29 @@
+---
+- name: Upload text file to EC2 and validate
+  hosts: ec2_hosts
+  gather_facts: false
+
+  vars:
+    local_file_path: "./data/example.txt"
+    remote_file_path: "/mnt/data/example.txt"
+    ansible_python_interpreter: /usr/bin/python3.8
+
+  tasks:
+    - name: Copy text file from local controller to EC2 instance
+      ansible.builtin.copy:
+        src: "{{ local_file_path }}"
+        dest: "{{ remote_file_path }}"
+        mode: "0644"
+
+    - name: Check if the file exists on the EC2 instance
+      ansible.builtin.stat:
+        path: "{{ remote_file_path }}"
+      register: file_status
+
+    - name: Assert that the file was created successfully
+      ansible.builtin.assert:
+        that:
+          - file_status.stat.exists
+          - not file_status.stat.isdir
+        fail_msg: "File {{ remote_file_path }} does not exist on the EC2 target."
+        success_msg: "File {{ remote_file_path }} successfully uploaded and verified!"

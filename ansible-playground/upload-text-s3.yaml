@@ -1,0 +1,35 @@
+---
+- name: Upload file from EC2 instance to S3 and validate
+  hosts: ec2_hosts
+  become: false
+
+  vars:
+    s3_bucket: "aws-app-runner-assets"
+    aws_region: "us-east-1"
+    ec2_file_path: "/mnt/data/example.txt"
+    s3_object_key: "ansible/example.txt"
+    ansible_python_interpreter: /usr/bin/python3.8
+
+  tasks:
+    - name: Upload local EC2 file to S3
+      amazon.aws.s3_object:
+        bucket: "{{ s3_bucket }}"
+        object: "{{ s3_object_key }}"
+        src: "{{ ec2_file_path }}"
+        mode: put
+        region: "{{ aws_region }}"
+
+    - name: Verify the object exists in S3
+      amazon.aws.s3_object_info:
+        bucket: "{{ s3_bucket }}"
+        object: "{{ s3_object_key }}"
+        region: "{{ aws_region }}"
+      register: s3_info
+
+    - name: Assert object existence and non-zero size
+      ansible.builtin.assert:
+        that:
+          - s3_info.s3_object is defined
+          - s3_info.s3_object.object_size > 0
+        fail_msg: "File {{ ec2_file_path }} failed to upload to S3 bucket {{ s3_bucket }}."
+        success_msg: "Successfully uploaded {{ ec2_file_path }} from EC2 to S3!"
