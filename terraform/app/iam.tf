@@ -100,30 +100,16 @@ resource "aws_iam_policy" "s3_list_bucket" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowBucketListing"
+    Statement = [{
       Effect = "Allow"
       Action = [
         "s3:ListBucket"
-      ]
-        Resource = [
-          aws_s3_bucket.assets.arn,
-          aws_s3_bucket.data_sink.arn
-        ]
-      },
-      {
-        Sid    = "AllowObjectUploads"
-        Effect = "Allow"
-        Action = [
-          "s3:PutObject"
         ]
       Resource = [
         "${aws_s3_bucket.assets.arn}/*",
         "${aws_s3_bucket.data_sink.arn}/*"
       ]
-      }
-    ]
+    }]
   })
 }
 
@@ -213,9 +199,47 @@ resource "aws_iam_policy" "s3_list_policy" {
   })
 }
 
+resource "aws_iam_policy" "s3_read_write_policy" {
+  name        = "S3ReadWritePolicy"
+  description = "Allows reading and writing of S3 objects"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowBucketListing"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.assets.arn,
+          aws_s3_bucket.data_sink.arn
+        ]
+      },
+      {
+        Sid    = "AllowObjectUploads"
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject"
+        ]
+        Resource = [
+          "${aws_s3_bucket.assets.arn}/*",
+          "${aws_s3_bucket.data_sink.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "s3_attach" {
   role       = aws_iam_role.ec2_s3_access_role.name
   policy_arn = aws_iam_policy.s3_list_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "s3_rw_attach" {
+  role       = aws_iam_role.ec2_s3_access_role.name
+  policy_arn = aws_iam_policy.s3_read_write_policy.arn
 }
 
 data "aws_iam_policy_document" "dynamodb_rw_policy" {
