@@ -18,18 +18,23 @@
         src: "{{ ec2_file_path }}"
         mode: put
         region: "{{ aws_region }}"
+        permission: "private"
 
     - name: Verify the object exists in S3
       amazon.aws.s3_object_info:
-        bucket: "{{ s3_bucket }}"
-        object: "{{ s3_object_key }}"
+        bucket_name: "{{ s3_bucket }}"
+        object_name: "{{ s3_object_key }}"
         region: "{{ aws_region }}"
       register: s3_info
+
+    - name: Print s3_info structure
+      ansible.builtin.debug:
+        var: s3_info
 
     - name: Assert object existence and non-zero size
       ansible.builtin.assert:
         that:
-          - s3_info.s3_object is defined
-          - s3_info.s3_object.object_size > 0
+          - s3_info.object_info is defined
+          - s3_info.object_info[0].object_data.content_length > 0
         fail_msg: "File {{ ec2_file_path }} failed to upload to S3 bucket {{ s3_bucket }}."
         success_msg: "Successfully uploaded {{ ec2_file_path }} from EC2 to S3!"
