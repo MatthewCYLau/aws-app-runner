@@ -24,6 +24,7 @@ from api.config.constants import (
 )
 from api.config.metrics import OPEN_POSITIONS_GAUGE
 from api.config.kafka_setup import KAFKA_HOST, KAFKA_TOPIC, get_kafka_producer
+from api.position.models import PositionResponse
 from api.utils.date_util import validate_date_string
 import yfinance as yf
 import pandas as pd
@@ -252,7 +253,18 @@ def get_position_by_id(
         logger.info(f"Retrieved position {position_id}")
         if not response.get("Items"):
             raise NotFoundException(f"Position with id {position_id} not found")
-        return response.get("Items")[0]
+        item = response.get("Items")[0]
+        position_response = PositionResponse(
+            item["PositionId"],
+            item["LastModified"],
+            item["StockSymbol"],
+            item["Open"],
+            item["Quantity"],
+            item["OpenPrice"],
+            item["Value"],
+            item["CreatedAt"],
+        )
+        return position_response
     except Exception as e:
         logger.error(f"Failed to fetch position {position_id}: {e}")
         raise
