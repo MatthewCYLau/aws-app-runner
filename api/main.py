@@ -224,7 +224,13 @@ def up():
 
 
 def get_random_int(max_int: int = 100):
-    return np.random.randint(1, max_int, size=1)[0]
+    n1 = np.arange(1, 2)
+    n2 = np.arange(1, max_int)
+    flat_result = (n1[:, None] * n2).ravel()
+    random_int_from_broadcast = np.random.choice(flat_result)
+    return np.random.choice(
+        [random_int_from_broadcast, np.random.randint(1, max_int, size=1)[0]]
+    )
 
 
 def generate_df(size: int = 100):
