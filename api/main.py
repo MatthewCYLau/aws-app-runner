@@ -228,8 +228,16 @@ def get_random_int(max_int: int = 100):
     n2 = np.arange(1, max_int)
     flat_result = (n1[:, None] * n2).ravel()
     random_int_from_broadcast = np.random.choice(flat_result)
+
+    arr = np.arange(1, 2 + max_int).reshape(2, (1 + max_int) // 2)
+    random_element = np.random.choice(arr.ravel())
+
     return np.random.choice(
-        [random_int_from_broadcast, np.random.randint(1, max_int, size=1)[0]]
+        [
+            random_element,
+            random_int_from_broadcast,
+            np.random.randint(1, max_int, size=1)[0],
+        ]
     )
 
 
