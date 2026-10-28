@@ -104,7 +104,7 @@ resource "aws_iam_policy" "s3_list_bucket" {
       Effect = "Allow"
       Action = [
         "s3:ListBucket"
-        ]
+      ]
       Resource = [
         "${aws_s3_bucket.assets.arn}/*",
         "${aws_s3_bucket.data_sink.arn}/*"
@@ -224,7 +224,7 @@ resource "aws_iam_policy" "s3_read_write_policy" {
           "s3:PutObject",
           "s3:PutObjectAcl",
           "s3:GetObjectTagging",
-          "s3:GetObject"  # Required for HeadObject checks and s3_object_info
+          "s3:GetObject" # Required for HeadObject checks and s3_object_info
         ]
         Resource = [
           "${aws_s3_bucket.assets.arn}/*",
@@ -351,7 +351,6 @@ resource "aws_iam_role_policy" "lambda_policy" {
   })
 }
 
-/*
 resource "aws_eks_pod_identity_association" "s3_access" {
   cluster_name    = module.eks.cluster_name
   namespace       = "dev"
@@ -390,4 +389,3 @@ resource "aws_eks_pod_identity_association" "cloudwatch_observability" {
   service_account = "cloudwatch-agent"
   role_arn        = aws_iam_role.cloudwatch_observability.arn
 }
-*/
